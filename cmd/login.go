@@ -45,6 +45,11 @@ initiate the login process and open a browser for user authentication.`,
 			ClientID:    clientId,
 		}
 
+		_, isValid := auth.GetValidAccessToken()
+		if isValid {
+			return
+		}
+
 		// Check for refresh token in the keyring
 		refreshToken, err := keyring.Get("go-spotify-cli", "refresh_token")
 		if err != nil {
