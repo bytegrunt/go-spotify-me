@@ -23,9 +23,9 @@ type appModel struct {
 }
 
 type APIResponse struct {
-    Artists []Artist
-    Next    string
-    Prev    string
+	Artists []Artist
+	Next    string
+	Prev    string
 }
 
 type switchToArtistsMsg struct {
@@ -195,7 +195,6 @@ func (m appModel) renderSongs() string {
 // func (m rootModel) View() string {
 // 	return m.message
 // }
-
 
 // func initialModel(response APIResponse) model {
 //     return model{

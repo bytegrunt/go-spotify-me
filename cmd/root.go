@@ -8,9 +8,9 @@ import (
 	"os"
 
 	"github.com/bytegrunt/go-spotify-me/internal/logging"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 var cfgFile string
@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
 			fmt.Println("Error running TUI:", err)
 			os.Exit(1)
 		}
-	},	
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

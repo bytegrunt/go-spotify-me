@@ -12,8 +12,8 @@ import (
 
 	"github.com/bytegrunt/go-spotify-me/internal/auth"
 	"github.com/bytegrunt/go-spotify-me/internal/logging"
-	"github.com/spf13/cobra"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
 )
 
 // Artist represents an artist's details
@@ -24,9 +24,9 @@ type Artist struct {
 }
 
 type Song struct {
-	Name     string
-	Artist   string
-	Album    string
+	Name       string
+	Artist     string
+	Album      string
 	Popularity int
 }
 
@@ -51,7 +51,7 @@ var topCmd = &cobra.Command{
 				return
 			}
 		}
-	
+
 		// Run the main app TUI
 		p := tea.NewProgram(initialAppModel(), tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {
@@ -175,9 +175,9 @@ func fetchSongs() ([]Song, error) {
 		}
 
 		songs = append(songs, Song{
-			Name:      name,
-			Artist:    artistName,
-			Album:     album,
+			Name:       name,
+			Artist:     artistName,
+			Album:      album,
 			Popularity: popularity,
 		})
 	}
