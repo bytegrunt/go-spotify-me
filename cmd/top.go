@@ -23,11 +23,19 @@ type Artist struct {
 	Popularity int
 }
 
+type Song struct {
+	Name     string
+	Artist   string
+	Album    string
+	Popularity int
+}
+
 // topCmd represents the top command
 var topCmd = &cobra.Command{
 	Use:   "top",
 	Short: "Display your top Spotify artists in a TUI",
 	Run: func(cmd *cobra.Command, args []string) {
+		// Ensure user is logged in
 		_, isValid := auth.GetValidAccessToken()
 		if !isValid {
 			logging.DebugLog("Access token is not valid. Running login command...")
@@ -43,17 +51,9 @@ var topCmd = &cobra.Command{
 				return
 			}
 		}
-
-		// Fetch initial page of artists
-		url := "https://api.spotify.com/v1/me/top/artists"
-		response, err := fetchArtistsPage(url)
-		if err != nil {
-			fmt.Println("Error fetching artists:", err)
-			return
-		}
-
-		// Start the TUI
-		p := tea.NewProgram(initialModel(response), tea.WithAltScreen())
+	
+		// Run the main app TUI
+		p := tea.NewProgram(initialAppModel(), tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {
 			fmt.Println("Error running TUI:", err)
 		}
@@ -147,4 +147,39 @@ func parseArtists(response map[string]interface{}) []Artist {
 	}
 
 	return artists
+}
+
+func fetchSongs() ([]Song, error) {
+	token, _ := auth.GetValidAccessToken()
+	response, err := MakeAPIRequest(token, "https://api.spotify.com/v1/me/top/tracks")
+	if err != nil {
+		return nil, err
+	}
+
+	items, ok := response["items"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid response format")
+	}
+
+	var songs []Song
+	for _, item := range items {
+		track := item.(map[string]interface{})
+		name := track["name"].(string)
+		album := track["album"].(map[string]interface{})["name"].(string)
+		popularity := int(track["popularity"].(float64))
+
+		artists := track["artists"].([]interface{})
+		artistName := ""
+		if len(artists) > 0 {
+			artistName = artists[0].(map[string]interface{})["name"].(string)
+		}
+
+		songs = append(songs, Song{
+			Name:      name,
+			Artist:    artistName,
+			Album:     album,
+			Popularity: popularity,
+		})
+	}
+	return songs, nil
 }
