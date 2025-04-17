@@ -73,12 +73,12 @@ func (m model) View() string {
     var s strings.Builder
 
     // Add table header
-    s.WriteString(fmt.Sprintf("%-30s %-40s %-10s\n", "Name", "Genres", "Popularity"))
-    s.WriteString(strings.Repeat("-", 80) + "\n") // Add a separator line
+    s.WriteString(fmt.Sprintf("%-30s %-60s %-10s\n", "Name", "Genres", "Popularity"))
+    s.WriteString(strings.Repeat("-", 100) + "\n") // Add a separator line
 
     // Add table rows
     for _, artist := range m.artists {
-        s.WriteString(fmt.Sprintf("%-30s %-40s %-10d\n", artist.Name, artist.Genres, artist.Popularity))
+        s.WriteString(fmt.Sprintf("%-30s %-60s %-10d\n", artist.Name, artist.Genres, artist.Popularity))
     }
 
     // Add navigation instructions
