@@ -23,8 +23,7 @@ import (
 )
 
 var clientId string
-
-// var codeVerifier string
+var forceLogin bool // Flag to force login
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
@@ -45,44 +44,47 @@ initiate the login process and open a browser for user authentication.`,
 			ClientID:    clientId,
 		}
 
-		_, isValid := auth.GetValidAccessToken()
-		if isValid {
-			return
-		}
-
-		// Check for refresh token in the keyring
-		refreshToken, err := keyring.Get("go-spotify-cli", "refresh_token")
-		if err != nil {
-			logging.DebugLog("Refresh token not found in keyring: %v", err)
-
-			// Check for refresh token in the hidden file
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				log.Fatalf("Failed to get user home directory: %v", err)
+		// Skip refresh token checks if force flag is set
+		if !forceLogin {
+			_, isValid := auth.GetValidAccessToken()
+			if isValid {
+				return
 			}
 
-			filePath := filepath.Join(homeDir, ".go-spotify-cli")
-			data, err := os.ReadFile(filePath)
-			if err == nil {
-				lines := strings.Split(string(data), "\n")
-				for _, line := range lines {
-					if strings.HasPrefix(line, "refresh_token=") {
-						refreshToken = strings.TrimPrefix(line, "refresh_token=")
-						break
+			// Check for refresh token in the keyring
+			refreshToken, err := keyring.Get("go-spotify-cli", "refresh_token")
+			if err != nil {
+				logging.DebugLog("Refresh token not found in keyring: %v", err)
+
+				// Check for refresh token in the hidden file
+				homeDir, err := os.UserHomeDir()
+				if err != nil {
+					log.Fatalf("Failed to get user home directory: %v", err)
+				}
+
+				filePath := filepath.Join(homeDir, ".go-spotify-cli")
+				data, err := os.ReadFile(filePath)
+				if err == nil {
+					lines := strings.Split(string(data), "\n")
+					for _, line := range lines {
+						if strings.HasPrefix(line, "refresh_token=") {
+							refreshToken = strings.TrimPrefix(line, "refresh_token=")
+							break
+						}
 					}
 				}
 			}
-		}
 
-		// If a refresh token is found, try to refresh the access token
-		if refreshToken != "" {
-			logging.DebugLog("Using existing refresh token to get a new access token.")
-			err := auth.RefreshAccessToken(authConfig, refreshToken)
-			if err == nil {
-				return // Successfully refreshed the token, exit the command
+			// If a refresh token is found, try to refresh the access token
+			if refreshToken != "" {
+				logging.DebugLog("Using existing refresh token to get a new access token.")
+				err := auth.RefreshAccessToken(authConfig, refreshToken)
+				if err == nil {
+					return // Successfully refreshed the token, exit the command
+				}
+				logging.DebugLog("Failed to refresh access token: %v", err)
+				logging.DebugLog("Falling back to regular login flow.")
 			}
-			logging.DebugLog("Failed to refresh access token: %v", err)
-			logging.DebugLog("Falling back to regular login flow.")
 		}
 
 		// Generate the code verifier and code challenge
@@ -96,7 +98,7 @@ initiate the login process and open a browser for user authentication.`,
 		logging.DebugLog("Generated authorization URL: %s", authURLWithParams)
 
 		// Open the URL in the default browser
-		err = openBrowser(authURLWithParams)
+		err := openBrowser(authURLWithParams)
 		if err != nil {
 			log.Fatalf("Failed to open browser: %v", err)
 		}
@@ -115,8 +117,9 @@ func init() {
 		clientId = envClientId
 	}
 
-	// Add a CLI flag for client-id
+	// Add CLI flags
 	loginCmd.Flags().StringVar(&clientId, "client-id", clientId, "Spotify Client ID (overrides SPOTIFY_CLIENT_ID)")
+	loginCmd.Flags().BoolVar(&forceLogin, "force", false, "Force login and skip refresh token checks")
 }
 
 // Start a local server to handle the callback
