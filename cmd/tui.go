@@ -7,12 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// type Artist struct {
-//     Name       string
-//     Genres     string
-//     Popularity int
-// }
-
 type APIResponse struct {
     Artists []Artist
     Next    string
@@ -91,8 +85,3 @@ func (m model) View() string {
     s.WriteString("\n[Press 'n' for next page, 'p' for previous page, 'q' to quit]\n")
     return s.String()
 }
-
-// func fetchArtistsPage(url string) (APIResponse, error) {
-//     // Placeholder for actual implementation
-//     return APIResponse{}, nil
-// }
