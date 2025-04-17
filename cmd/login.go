@@ -90,7 +90,7 @@ initiate the login process and open a browser for user authentication.`,
 		codeChallenge := auth.GenerateCodeChallenge(codeVerifier)
 
 		// Generate the authorization URL
-		authURLWithParams := fmt.Sprintf("%s?client_id=%s&response_type=code&redirect_uri=%s&scope=user-read-private user-read-email&code_challenge=%s&code_challenge_method=S256",
+		authURLWithParams := fmt.Sprintf("%s?client_id=%s&response_type=code&redirect_uri=%s&scope=user-read-private user-read-email user-top-read&code_challenge=%s&code_challenge_method=S256",
 			authConfig.AuthURL, url.QueryEscape(authConfig.ClientID), authConfig.RedirectURI, codeChallenge)
 
 		logging.DebugLog("Generated authorization URL: %s", authURLWithParams)
