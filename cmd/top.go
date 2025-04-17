@@ -53,7 +53,7 @@ var topCmd = &cobra.Command{
 		}
 
 		// Start the TUI
-		p := tea.NewProgram(initialModel(response))
+		p := tea.NewProgram(initialModel(response), tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {
 			fmt.Println("Error running TUI:", err)
 		}
