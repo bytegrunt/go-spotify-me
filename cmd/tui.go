@@ -18,12 +18,14 @@ const (
 type appModel struct {
 	currentView viewType
 	artists     APIResponse
-	songs       []Song // define Song struct below
+	songs       APIResponse
+	windowSize  tea.WindowSizeMsg
 	err         error
 }
 
 type APIResponse struct {
 	Artists []Artist
+	Songs   []Song
 	Next    string
 	Prev    string
 }
@@ -33,7 +35,7 @@ type switchToArtistsMsg struct {
 }
 
 type switchToSongsMsg struct {
-	songs []Song
+	response APIResponse
 }
 
 type errMsg struct {
@@ -41,7 +43,11 @@ type errMsg struct {
 }
 
 func (m appModel) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		tea.EnterAltScreen,
+		tea.ClearScreen,
+		tea.WindowSize(),
+	)
 }
 
 func initialAppModel() appModel {
@@ -72,7 +78,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "s", "S":
 			return m, func() tea.Msg {
-				songs, err := fetchSongs()
+				songs, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks")
 				if err != nil {
 					return errMsg{err}
 				}
@@ -86,8 +92,14 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.artists = response
+			} else if m.currentView == viewSongs && m.songs.Next != "" {
+				response, err := fetchSongsPage(m.songs.Next)
+				if err != nil {
+					return m, nil
+				}
+				m.songs = response
 			}
-
+		
 		case "p":
 			if m.currentView == viewArtists && m.artists.Prev != "" {
 				response, err := fetchArtistsPage(m.artists.Prev)
@@ -95,14 +107,24 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.artists = response
+			} else if m.currentView == viewSongs && m.songs.Prev != "" {
+				response, err := fetchSongsPage(m.songs.Prev)
+				if err != nil {
+					return m, nil
+				}
+				m.songs = response
 			}
+		
 		}
 
+	// Handle window resize
+	case tea.WindowSizeMsg:
+		m.windowSize = msg
 	case switchToArtistsMsg:
 		m.artists = msg.response
 		m.currentView = viewArtists
 	case switchToSongsMsg:
-		m.songs = msg.songs
+		m.songs = msg.response
 		m.currentView = viewSongs
 	case errMsg:
 		m.err = msg.err
@@ -129,25 +151,78 @@ func (m appModel) View() string {
 
 func (m appModel) renderArtists() string {
 	var s strings.Builder
-	s.WriteString(fmt.Sprintf("%-30s %-60s %-10s\n", "Name", "Genres", "Popularity"))
-	s.WriteString(strings.Repeat("-", 100) + "\n")
+
+	// Dynamic column widths
+	totalWidth := m.windowSize.Width
+	if totalWidth == 0 {
+		totalWidth = 100 // fallback
+	}
+	colName := 25
+	colGenre := totalWidth - colName - 12 - 5 // leave space for padding and popularity
+	colPop := 10
+
+	s.WriteString(fmt.Sprintf("%s %s %s\n",
+		truncateOrPad("Name", colName),
+		truncateOrPad("Genres", colGenre),
+		truncateOrPad("Popularity", colPop),
+	))
+	s.WriteString(strings.Repeat("-", totalWidth) + "\n")
+
 	for _, artist := range m.artists.Artists {
-		s.WriteString(fmt.Sprintf("%-30s %-60s %-10d\n", artist.Name, artist.Genres, artist.Popularity))
+		s.WriteString(fmt.Sprintf("%s %s %d\n",
+			truncateOrPad(artist.Name, colName),
+			truncateOrPad(artist.Genres, colGenre),
+			artist.Popularity,
+		))
 	}
 	s.WriteString("\n[n] next, [p] previous, [q] back to menu\n")
 	return s.String()
 }
 
+
 func (m appModel) renderSongs() string {
 	var s strings.Builder
-	s.WriteString(fmt.Sprintf("%-30s %-30s %-30s %-10s\n", "Name", "Artist", "Album", "Popularity"))
-	s.WriteString(strings.Repeat("-", 100) + "\n")
-	for _, song := range m.songs {
-		s.WriteString(fmt.Sprintf("%-30s %-30s %-30s %-10d\n", song.Name, song.Artist, song.Album, song.Popularity))
+
+	totalWidth := m.windowSize.Width
+	if totalWidth == 0 {
+		totalWidth = 100
 	}
-	s.WriteString("\n[q] back to menu\n")
+	colName := 20
+	colArtist := 20
+	colAlbum := totalWidth - colName - colArtist - 12 - 5
+	colPop := 10
+
+	s.WriteString(fmt.Sprintf("%s %s %s %s\n",
+		truncateOrPad("Name", colName),
+		truncateOrPad("Artist", colArtist),
+		truncateOrPad("Album", colAlbum),
+		truncateOrPad("Popularity", colPop),
+	))
+	s.WriteString(strings.Repeat("-", totalWidth) + "\n")
+
+	for _, song := range m.songs.Songs {
+		s.WriteString(fmt.Sprintf("%s %s %s %d\n",
+			truncateOrPad(song.Name, colName),
+			truncateOrPad(song.Artist, colArtist),
+			truncateOrPad(song.Album, colAlbum),
+			song.Popularity,
+		))
+	}
+	s.WriteString("\n[n] next, [p] previous, [q] back to menu\n")
 	return s.String()
 }
+
+
+func truncateOrPad(s string, width int) string {
+	if len(s) > width {
+		if width > 3 {
+			return s[:width-3] + "..."
+		}
+		return s[:width]
+	}
+	return fmt.Sprintf("%-*s", width, s)
+}
+
 
 // func initialRootModel() rootModel {
 // 	return rootModel{

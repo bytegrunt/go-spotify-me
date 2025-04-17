@@ -92,7 +92,6 @@ func MakeAPIRequest(token string, url string) (map[string]interface{}, error) {
 	return response, nil
 }
 
-// fetchArtistsPage fetches a page of artists from the Spotify API
 func fetchArtistsPage(url string) (APIResponse, error) {
 	token, _ := auth.GetValidAccessToken()
 	response, err := MakeAPIRequest(token, url)
@@ -100,7 +99,37 @@ func fetchArtistsPage(url string) (APIResponse, error) {
 		return APIResponse{}, err
 	}
 
-	artists := parseArtists(response)
+	items, ok := response["items"].([]interface{})
+	if !ok {
+		return APIResponse{}, fmt.Errorf("invalid response format")
+	}
+
+	var artists []Artist
+	for _, item := range items {
+		artist, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name, _ := artist["name"].(string)
+		popularity := int(artist["popularity"].(float64))
+
+		genres := []string{}
+		if genreList, ok := artist["genres"].([]interface{}); ok {
+			for _, genre := range genreList {
+				if g, ok := genre.(string); ok {
+					genres = append(genres, g)
+				}
+			}
+		}
+
+		artists = append(artists, Artist{
+			Name:       name,
+			Genres:     strings.Join(genres, ", "),
+			Popularity: popularity,
+		})
+	}
+
 	next, _ := response["next"].(string)
 	prev, _ := response["previous"].(string)
 
@@ -111,75 +140,57 @@ func fetchArtistsPage(url string) (APIResponse, error) {
 	}, nil
 }
 
-// parseArtists parses the API response to extract artist details
-func parseArtists(response map[string]interface{}) []Artist {
-	items, ok := response["items"].([]interface{})
-	if !ok {
-		return nil
-	}
 
-	var artists []Artist
-	for _, item := range items {
-		artist, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		name := artist["name"].(string)
-
-		// Convert genres from []interface{} to []string
-		genresInterface, ok := artist["genres"].([]interface{})
-		if !ok {
-			genresInterface = []interface{}{}
-		}
-		var genres []string
-		for _, genre := range genresInterface {
-			genres = append(genres, genre.(string))
-		}
-
-		popularity := int(artist["popularity"].(float64))
-
-		artists = append(artists, Artist{
-			Name:       name,
-			Genres:     strings.Join(genres, ", "),
-			Popularity: popularity,
-		})
-	}
-
-	return artists
-}
-
-func fetchSongs() ([]Song, error) {
+func fetchSongsPage(url string) (APIResponse, error) {
 	token, _ := auth.GetValidAccessToken()
-	response, err := MakeAPIRequest(token, "https://api.spotify.com/v1/me/top/tracks")
+	response, err := MakeAPIRequest(token, url)
 	if err != nil {
-		return nil, err
+		return APIResponse{}, err
 	}
 
 	items, ok := response["items"].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("invalid response format")
+		return APIResponse{}, fmt.Errorf("invalid response format")
 	}
 
 	var songs []Song
 	for _, item := range items {
-		track := item.(map[string]interface{})
-		name := track["name"].(string)
-		album := track["album"].(map[string]interface{})["name"].(string)
+		track, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name, _ := track["name"].(string)
 		popularity := int(track["popularity"].(float64))
 
-		artists := track["artists"].([]interface{})
+		// Album name
+		albumName := ""
+		if album, ok := track["album"].(map[string]interface{}); ok {
+			albumName, _ = album["name"].(string)
+		}
+
+		// Artist name
 		artistName := ""
-		if len(artists) > 0 {
-			artistName = artists[0].(map[string]interface{})["name"].(string)
+		if artistList, ok := track["artists"].([]interface{}); ok && len(artistList) > 0 {
+			if firstArtist, ok := artistList[0].(map[string]interface{}); ok {
+				artistName, _ = firstArtist["name"].(string)
+			}
 		}
 
 		songs = append(songs, Song{
 			Name:       name,
 			Artist:     artistName,
-			Album:      album,
+			Album:      albumName,
 			Popularity: popularity,
 		})
 	}
-	return songs, nil
+
+	next, _ := response["next"].(string)
+	prev, _ := response["previous"].(string)
+
+	return APIResponse{
+		Songs: songs,
+		Next:  next,
+		Prev:  prev,
+	}, nil
 }
