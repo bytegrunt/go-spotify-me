@@ -94,7 +94,7 @@ func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time
 		log.Fatalf("Failed to get user home directory: %v", err)
 	}
 
-	filePath := filepath.Join(homeDir, ".go-spotify-cli")
+	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Fatalf("Failed to open file for writing: %v", err)
@@ -104,7 +104,7 @@ func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time
 	var data string
 
 	// Attempt to store the refresh token in the keyring
-	err = keyring.Set("go-spotify-cli", "refresh_token", refreshToken)
+	err = keyring.Set("go-spotify-me-cli", "refresh_token", refreshToken)
 	if err != nil {
 		log.Printf("Failed to store refresh token in keyring: %v", err)
 		log.Println("Falling back to saving the refresh token in the hidden file.")
@@ -167,7 +167,7 @@ func GetValidAccessToken() (string, bool) {
 		log.Fatalf("Failed to get user home directory: %v", err)
 	}
 
-	filePath := filepath.Join(homeDir, ".go-spotify-cli")
+	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Printf("Failed to open token file: %v", err)

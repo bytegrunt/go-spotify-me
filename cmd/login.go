@@ -34,7 +34,7 @@ func Login() error {
 	}
 
 	// Check for refresh token in the keyring
-	refreshToken, err := keyring.Get("go-spotify-cli", "refresh_token")
+	refreshToken, err := keyring.Get("go-spotify-me-cli", "refresh_token")
 	if err != nil {
 		logging.DebugLog("Refresh token not found in keyring: %v", err)
 
@@ -44,7 +44,7 @@ func Login() error {
 			log.Fatalf("Failed to get user home directory: %v", err)
 		}
 
-		filePath := filepath.Join(homeDir, ".go-spotify-cli")
+		filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
 		data, err := os.ReadFile(filePath)
 		if err == nil {
 			lines := strings.Split(string(data), "\n")
@@ -67,7 +67,6 @@ func Login() error {
 		logging.DebugLog("Failed to refresh access token: %v", err)
 		logging.DebugLog("Falling back to regular login flow.")
 	}
-
 
 	// Generate the code verifier and code challenge
 	codeVerifier := auth.GenerateCodeVerifier()
@@ -92,19 +91,19 @@ func Login() error {
 
 // GetClientID retrieves the Client ID from the keyring or environment variable.
 func GetClientID() (string, error) {
-    // Check the keyring for the Client ID
-    clientID, err := keyring.Get("go-spotify-cli", "client_id")
-    if err == nil {
-        return clientID, nil
-    }
+	// Check the keyring for the Client ID
+	clientID, err := keyring.Get("go-spotify-me-cli", "client_id")
+	if err == nil {
+		return clientID, nil
+	}
 
-    // Fallback to environment variable
-    clientID = os.Getenv("SPOTIFY_CLIENT_ID")
-    if clientID != "" {
-        return clientID, nil
-    }
+	// Fallback to environment variable
+	clientID = os.Getenv("SPOTIFY_CLIENT_ID")
+	if clientID != "" {
+		return clientID, nil
+	}
 
-    return "", nil
+	return "", nil
 }
 
 // Start a local server to handle the callback

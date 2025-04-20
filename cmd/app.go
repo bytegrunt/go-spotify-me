@@ -109,12 +109,21 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle entering the Client ID
 			if m.currentView == viewEnterClientID {
 				m.clientID = m.textInput.Value()
-				err := keyring.Set("go-spotify-cli", "client_id", m.clientID)
+				err := keyring.Set("go-spotify-me-cli", "client_id", m.clientID)
 				if err != nil {
 					m.err = fmt.Errorf("failed to store client ID in keyring: %v", err)
 					return m, nil
 				}
-				m.currentView = viewLogin
+
+				// Call the Login function after saving the Client ID
+				loginErr := Login()
+				if loginErr != nil {
+					m.err = fmt.Errorf("failed to log in: %v", loginErr)
+					return m, nil
+				}
+
+				// Switch to the menu view after successful login
+				m.currentView = viewMenu
 				return m, nil
 			}
 		}
@@ -149,7 +158,7 @@ func (m appModel) View() string {
 
 	switch m.currentView {
 	case viewMenu:
-		return "\nWelcome to go-spotify\n\nPress L to Login\nPress A for Top Artists\nPress S for Top Songs\nPress Q to quit"
+		return "\nWelcome to go-spotify-me\n\nPress L to Login\nPress A for Top Artists\nPress S for Top Songs\nPress Q to quit"
 	case viewLogin:
 		return m.renderLogin()
 	case viewArtists:
