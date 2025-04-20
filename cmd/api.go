@@ -11,9 +11,7 @@ import (
 	"strings"
 
 	"github.com/bytegrunt/go-spotify-me/internal/auth"
-	"github.com/bytegrunt/go-spotify-me/internal/logging"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/spf13/cobra"
+
 )
 
 // Artist represents an artist's details
@@ -30,39 +28,13 @@ type Song struct {
 	Popularity int
 }
 
-// topCmd represents the top command
-var topCmd = &cobra.Command{
-	Use:   "top",
-	Short: "Display your top Spotify artists in a TUI",
-	Run: func(cmd *cobra.Command, args []string) {
-		// Ensure user is logged in
-		_, isValid := auth.GetValidAccessToken()
-		if !isValid {
-			logging.DebugLog("Access token is not valid. Running login command...")
-			loginCmd, _, err := rootCmd.Find([]string{"login"})
-			if err != nil {
-				fmt.Println("Failed to find login command:", err)
-				return
-			}
-			loginCmd.Run(loginCmd, args)
-			_, isValid = auth.GetValidAccessToken()
-			if !isValid {
-				fmt.Println("Failed to obtain a valid access token after login.")
-				return
-			}
-		}
-
-		// Run the main app TUI
-		p := tea.NewProgram(initialAppModel(), tea.WithAltScreen())
-		if _, err := p.Run(); err != nil {
-			fmt.Println("Error running TUI:", err)
-		}
-	},
+type APIResponse struct {
+	Artists []Artist
+	Songs   []Song
+	Next    string
+	Prev    string
 }
 
-func init() {
-	rootCmd.AddCommand(topCmd)
-}
 
 // MakeAPIRequest makes a GET request to the Spotify API and returns the response or an error
 func MakeAPIRequest(token string, url string) (map[string]interface{}, error) {
@@ -99,37 +71,7 @@ func fetchArtistsPage(url string) (APIResponse, error) {
 		return APIResponse{}, err
 	}
 
-	items, ok := response["items"].([]interface{})
-	if !ok {
-		return APIResponse{}, fmt.Errorf("invalid response format")
-	}
-
-	var artists []Artist
-	for _, item := range items {
-		artist, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		name, _ := artist["name"].(string)
-		popularity := int(artist["popularity"].(float64))
-
-		genres := []string{}
-		if genreList, ok := artist["genres"].([]interface{}); ok {
-			for _, genre := range genreList {
-				if g, ok := genre.(string); ok {
-					genres = append(genres, g)
-				}
-			}
-		}
-
-		artists = append(artists, Artist{
-			Name:       name,
-			Genres:     strings.Join(genres, ", "),
-			Popularity: popularity,
-		})
-	}
-
+	artists := parseArtists(response)
 	next, _ := response["next"].(string)
 	prev, _ := response["previous"].(string)
 
@@ -140,7 +82,6 @@ func fetchArtistsPage(url string) (APIResponse, error) {
 	}, nil
 }
 
-
 func fetchSongsPage(url string) (APIResponse, error) {
 	token, _ := auth.GetValidAccessToken()
 	response, err := MakeAPIRequest(token, url)
@@ -148,9 +89,57 @@ func fetchSongsPage(url string) (APIResponse, error) {
 		return APIResponse{}, err
 	}
 
+	songs := parseSongs(response)
+	next, _ := response["next"].(string)
+	prev, _ := response["previous"].(string)
+
+	return APIResponse{
+		Songs: songs,
+		Next:  next,
+		Prev:  prev,
+	}, nil
+}
+
+func parseArtists(response map[string]interface{}) []Artist {
 	items, ok := response["items"].([]interface{})
 	if !ok {
-		return APIResponse{}, fmt.Errorf("invalid response format")
+		return nil
+	}
+
+	var artists []Artist
+	for _, item := range items {
+		artist, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name := artist["name"].(string)
+
+		genresInterface, ok := artist["genres"].([]interface{})
+		if !ok {
+			genresInterface = []interface{}{}
+		}
+		var genres []string
+		for _, genre := range genresInterface {
+			genres = append(genres, genre.(string))
+		}
+
+		popularity := int(artist["popularity"].(float64))
+
+		artists = append(artists, Artist{
+			Name:       name,
+			Genres:     strings.Join(genres, ", "),
+			Popularity: popularity,
+		})
+	}
+
+	return artists
+}
+
+func parseSongs(response map[string]interface{}) []Song {
+	items, ok := response["items"].([]interface{})
+	if !ok {
+		return nil
 	}
 
 	var songs []Song
@@ -160,16 +149,14 @@ func fetchSongsPage(url string) (APIResponse, error) {
 			continue
 		}
 
-		name, _ := track["name"].(string)
+		name := track["name"].(string)
 		popularity := int(track["popularity"].(float64))
 
-		// Album name
 		albumName := ""
 		if album, ok := track["album"].(map[string]interface{}); ok {
 			albumName, _ = album["name"].(string)
 		}
 
-		// Artist name
 		artistName := ""
 		if artistList, ok := track["artists"].([]interface{}); ok && len(artistList) > 0 {
 			if firstArtist, ok := artistList[0].(map[string]interface{}); ok {
@@ -185,12 +172,5 @@ func fetchSongsPage(url string) (APIResponse, error) {
 		})
 	}
 
-	next, _ := response["next"].(string)
-	prev, _ := response["previous"].(string)
-
-	return APIResponse{
-		Songs: songs,
-		Next:  next,
-		Prev:  prev,
-	}, nil
+	return songs
 }

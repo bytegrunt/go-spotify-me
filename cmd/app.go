@@ -11,6 +11,7 @@ type viewType int
 
 const (
 	viewMenu viewType = iota
+	viewLogin
 	viewArtists
 	viewSongs
 )
@@ -21,13 +22,6 @@ type appModel struct {
 	songs       APIResponse
 	windowSize  tea.WindowSizeMsg
 	err         error
-}
-
-type APIResponse struct {
-	Artists []Artist
-	Songs   []Song
-	Next    string
-	Prev    string
 }
 
 type switchToArtistsMsg struct {
@@ -50,7 +44,7 @@ func (m appModel) Init() tea.Cmd {
 	)
 }
 
-func initialAppModel() appModel {
+func InitialAppModel() appModel {
 	return appModel{
 		currentView: viewMenu,
 	}
@@ -67,6 +61,10 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Quit
 
+		case "l", "L":
+			m.currentView = viewLogin
+			return m, nil
+
 		case "a", "A":
 			return m, func() tea.Msg {
 				response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists")
@@ -78,11 +76,11 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "s", "S":
 			return m, func() tea.Msg {
-				songs, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks")
+				response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks")
 				if err != nil {
 					return errMsg{err}
 				}
-				return switchToSongsMsg{songs}
+				return switchToSongsMsg{response}
 			}
 
 		case "n":
@@ -139,7 +137,9 @@ func (m appModel) View() string {
 
 	switch m.currentView {
 	case viewMenu:
-		return "\nWelcome to go-spotify\n\nPress A for Top Artists\nPress S for Top Songs\nPress Q to quit"
+		return "\nWelcome to go-spotify\n\nPress L to Login\nPress A for Top Artists\nPress S for Top Songs\nPress Q to quit"
+	case viewLogin:
+		return m.renderLogin()
 	case viewArtists:
 		return m.renderArtists()
 	case viewSongs:
@@ -147,6 +147,10 @@ func (m appModel) View() string {
 	default:
 		return "Unknown view"
 	}
+}
+
+func (m appModel) renderLogin() string {
+	return "Login functionality is not yet implemented.\nPress Q to go back."
 }
 
 func (m appModel) renderArtists() string {
@@ -222,117 +226,3 @@ func truncateOrPad(s string, width int) string {
 	}
 	return fmt.Sprintf("%-*s", width, s)
 }
-
-
-// func initialRootModel() rootModel {
-// 	return rootModel{
-// 		message: "Welcome to go-spotify\n\nPress A for Top Artists\nPress S for Top Songs\nPress Q to quit",
-// 	}
-// }
-
-// func (m rootModel) Init() tea.Cmd {
-// 	return nil
-// }
-
-// func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-// 	switch msg := msg.(type) {
-// 	case tea.KeyMsg:
-// 		switch msg.String() {
-// 		case "a", "A":
-// 			return m, func() tea.Msg {
-// 				// Fetch and return the top artists
-// 				response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists")
-// 				if err != nil {
-// 					return errMsg{err}
-// 				}
-// 				return switchToTopArtistsMsg{response}
-// 			}
-// 		case "s", "S":
-// 			// You would create a `fetchTopSongsPage` function for this
-// 			return m, func() tea.Msg {
-// 				// Placeholder - you'd fetch and return the top songs here
-// 				return errMsg{fmt.Errorf("Top songs not yet implemented")}
-// 			}
-// 		case "q", "Q", "esc":
-// 			return m, tea.Quit
-// 		}
-// 	case switchToTopArtistsMsg:
-// 		return initialModel(msg.response), nil
-// 	case errMsg:
-// 		return m, func() tea.Msg {
-// 			fmt.Println("Error:", msg.err)
-// 			return tea.Quit()
-// 		}
-// 	}
-// 	return m, nil
-// }
-
-// func (m rootModel) View() string {
-// 	return m.message
-// }
-
-// func initialModel(response APIResponse) model {
-//     return model{
-//         artists: response.Artists,
-//         next:    response.Next,
-//         prev:    response.Prev,
-//     }
-// }
-
-// func (m model) Init() tea.Cmd {
-//     return nil
-// }
-
-// func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-//     switch msg := msg.(type) {
-//     case tea.KeyMsg:
-//         switch msg.String() {
-//         case "q", "esc":
-//             return m, tea.Quit
-//         case "n": // Fetch next page
-//             if m.next != "" {
-//                 response, err := fetchArtistsPage(m.next)
-//                 if err != nil {
-//                     m.err = err
-//                     return m, nil
-//                 }
-//                 m.artists = response.Artists
-//                 m.next = response.Next
-//                 m.prev = response.Prev
-//             }
-//         case "p": // Fetch previous page
-//             if m.prev != "" {
-//                 response, err := fetchArtistsPage(m.prev)
-//                 if err != nil {
-//                     m.err = err
-//                     return m, nil
-//                 }
-//                 m.artists = response.Artists
-//                 m.next = response.Next
-//                 m.prev = response.Prev
-//             }
-//         }
-//     }
-//     return m, nil
-// }
-
-// func (m model) View() string {
-//     if m.err != nil {
-//         return fmt.Sprintf("Error: %v\nPress q to quit.", m.err)
-//     }
-
-//     var s strings.Builder
-
-//     // Add table header
-//     s.WriteString(fmt.Sprintf("%-30s %-60s %-10s\n", "Name", "Genres", "Popularity"))
-//     s.WriteString(strings.Repeat("-", 100) + "\n") // Add a separator line
-
-//     // Add table rows
-//     for _, artist := range m.artists {
-//         s.WriteString(fmt.Sprintf("%-30s %-60s %-10d\n", artist.Name, artist.Genres, artist.Popularity))
-//     }
-
-//     // Add navigation instructions
-//     s.WriteString("\n[Press 'n' for next page, 'p' for previous page, 'q' to quit]\n")
-//     return s.String()
-// }

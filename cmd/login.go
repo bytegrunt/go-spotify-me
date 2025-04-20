@@ -18,7 +18,6 @@ import (
 
 	"github.com/bytegrunt/go-spotify-me/internal/auth"
 	"github.com/bytegrunt/go-spotify-me/internal/logging"
-	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
 )
 
@@ -26,12 +25,7 @@ var clientId string
 var forceLogin bool // Flag to force login
 
 // loginCmd represents the login command
-var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Authenticate with Spotify using PKCE",
-	Long: `Authenticate with Spotify using the PKCE flow. This command will
-initiate the login process and open a browser for user authentication.`,
-	Run: func(cmd *cobra.Command, args []string) {
+func Login() {
 		// Check if clientId is set
 		if clientId == "" {
 			log.Fatal("client-id is required. Set it via the environment variable SPOTIFY_CLIENT_ID or the --client-id flag.")
@@ -105,21 +99,14 @@ initiate the login process and open a browser for user authentication.`,
 
 		// Start a local server to handle the callback
 		startCallbackServer(authConfig, codeVerifier)
-	},
 }
 
 func init() {
-	rootCmd.AddCommand(loginCmd)
-
 	// Set clientId from environment variable
 	envClientId := os.Getenv("SPOTIFY_CLIENT_ID")
 	if envClientId != "" {
 		clientId = envClientId
 	}
-
-	// Add CLI flags
-	loginCmd.Flags().StringVar(&clientId, "client-id", clientId, "Spotify Client ID (overrides SPOTIFY_CLIENT_ID)")
-	loginCmd.Flags().BoolVar(&forceLogin, "force", false, "Force login and skip refresh token checks")
 }
 
 // Start a local server to handle the callback
