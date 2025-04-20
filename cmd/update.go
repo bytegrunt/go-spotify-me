@@ -42,7 +42,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "a", "A":
 			// Switch to the Artists view
 			return m, func() tea.Msg {
-				response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists")
+				response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
 				if err != nil {
 					return errMsg{err}
 				}
@@ -52,7 +52,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "s", "S":
 			// Switch to the Songs view
 			return m, func() tea.Msg {
-				response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks")
+				response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
 				if err != nil {
 					return errMsg{err}
 				}
