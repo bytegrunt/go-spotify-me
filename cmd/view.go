@@ -4,27 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bytegrunt/go-spotify-me/internal/theme"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-    headerStyle = lipgloss.NewStyle().
-            Bold(true).
-            Foreground(lipgloss.Color("5")).
-            Background(lipgloss.Color("236")).
-            Padding(0, 1)
-
-    rowStyle = lipgloss.NewStyle().
-            Foreground(lipgloss.Color("7")).
-            Background(lipgloss.Color("0")).
-            Padding(0, 1)
-
-    selectedRowStyle = lipgloss.NewStyle().
-            Foreground(lipgloss.Color("0")).
-            Background(lipgloss.Color("5")).
-            Padding(0, 1)
-)
+var footer = theme.HelpStyle.Render("[↑/↓] Navigate  [←] Prev Page  [→] Next Page  [1] Short  [2] Medium  [3] Long  [q] Back")
 
 func (m appModel) View() string {
     if m.err != nil {
@@ -35,9 +20,9 @@ func (m appModel) View() string {
     case viewMenu:
         return m.renderMenu()
     case viewArtists:
-        return m.artistTable.View() + "\n\n[↑/↓] Navigate | [←] Previous Page | [→] Next Page | [q] Back to Menu"
-    case viewSongs:
-        return m.songTable.View() + "\n\n[↑/↓] Navigate | [←] Previous Page | [→] Next Page | [q] Back to Menu"
+		return m.renderTable(m.artistTable) + "\n" + footer
+	case viewSongs:
+		return m.renderTable(m.songTable) + "\n" + footer
 	case viewEnterClientID:
 		return m.renderEnterClientID()
 	default:
@@ -47,17 +32,32 @@ func (m appModel) View() string {
 
 func (m appModel) renderTable(t table.Model) string {
     var rows []string
-    for i, row := range t.Rows() {
-        style := rowStyle
-        if i == t.Cursor() {
-            style = selectedRowStyle
-        }
-        rows = append(rows, style.Render(fmt.Sprintf("%s | %s | %s", row[0], row[1], row[2])))
+
+    // Headers
+    var headers []string
+    for _, col := range t.Columns() {
+        headers = append(headers, theme.HeaderStyle.Render(col.Title))
     }
 
-    headers := headerStyle.Render(fmt.Sprintf("%s | %s | %s", t.Columns()[0].Title, t.Columns()[1].Title, t.Columns()[2].Title))
-    return headers + "\n" + strings.Join(rows, "\n")
+    // Rows
+    for i, row := range t.Rows() {
+        rowStr := lipgloss.JoinHorizontal(lipgloss.Top, row...)
+        style := theme.RowStyle
+        if i == t.Cursor() {
+            style = theme.SelectedRowStyle
+        }
+        rows = append(rows, style.Render(rowStr))
+    }
+
+    tableBody := lipgloss.JoinVertical(lipgloss.Left,
+        lipgloss.JoinHorizontal(lipgloss.Top, headers...),
+        strings.Join(rows, "\n"),
+    )
+
+    return theme.TableContainerStyle.Render(tableBody)
 }
+
+
 
 func (m appModel) renderEnterClientID() string {
 	return fmt.Sprintf(
