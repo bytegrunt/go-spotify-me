@@ -13,7 +13,6 @@ type viewType int
 
 const (
 	viewMenu viewType = iota
-	viewLogin
 	viewArtists
 	viewSongs
 	viewEnterClientID
@@ -22,6 +21,7 @@ const (
 type appModel struct {
 	currentView viewType
 	clientID    string
+	me          Me              // User information
 	textInput   textinput.Model // Text input for Client ID
 	artists     APIResponse
 	songs       APIResponse
@@ -62,9 +62,20 @@ func InitialAppModel(clientID string) appModel {
 			textInput:   ti,
 		}
 	}
+
+	me, err := fetchMe()
+	if err != nil {
+		me = Me{
+			DisplayName: "Unknown",
+			Email:       "Unknown",
+			Product:     "Unknown",
+		}
+	}
+
 	return appModel{
 		currentView: viewMenu,
 		clientID:    clientID,
+		me:          me,
 	}
 }
 
@@ -80,10 +91,6 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, tea.Quit
-
-		case "l", "L":
-			m.currentView = viewLogin
-			return m, nil
 
 		case "a", "A":
 			// Switch to the Artists view
@@ -196,9 +203,7 @@ func (m appModel) View() string {
 
 	switch m.currentView {
 	case viewMenu:
-		return "\nWelcome to go-spotify-me\n\nPress L to Login\nPress A for Top Artists\nPress S for Top Songs\nPress Q to quit"
-	case viewLogin:
-		return m.renderLogin()
+		return m.renderMenu()
 	case viewArtists:
 		return m.renderArtists()
 	case viewSongs:
@@ -217,8 +222,18 @@ func (m appModel) renderEnterClientID() string {
 	)
 }
 
-func (m appModel) renderLogin() string {
-	return "Login functionality is not yet implemented.\nPress Q to go back."
+func (m appModel) renderMenu() string {
+	return fmt.Sprintf(
+		"Welcome, %s (%s)\nProduct: %s\n\n"+
+			"Menu:\n"+
+			"Press A for Top Artists\n"+
+			"Press S for Top Songs\n"+
+			"Press Q to quit\n\n"+
+			"Developer Dashboard: https://developer.spotify.com/dashboard\n",
+		m.me.DisplayName,
+		m.me.Email,
+		m.me.Product,
+	)
 }
 
 func (m appModel) renderArtists() string {
@@ -229,9 +244,9 @@ func (m appModel) renderArtists() string {
 	if totalWidth == 0 {
 		totalWidth = 100 // fallback
 	}
-	colName := 25
+	colName := 30
 	colGenre := totalWidth - colName - 12 - 5 // leave space for padding and popularity
-	colPop := 10
+	colPop := 5
 
 	s.WriteString(fmt.Sprintf("%s %s %s\n",
 		truncateOrPad("Name", colName),
@@ -258,10 +273,10 @@ func (m appModel) renderSongs() string {
 	if totalWidth == 0 {
 		totalWidth = 100
 	}
-	colName := 20
-	colArtist := 20
+	colName := 40
+	colArtist := 30
 	colAlbum := totalWidth - colName - colArtist - 12 - 5
-	colPop := 10
+	colPop := 5
 
 	s.WriteString(fmt.Sprintf("%s %s %s %s\n",
 		truncateOrPad("Name", colName),
