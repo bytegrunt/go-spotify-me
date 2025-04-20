@@ -47,25 +47,29 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
             return m, tea.Quit
 
 		case "a", "A":
-			m.artistTable.Focus()
-			// Switch to the Artists view
-			return m, func() tea.Msg {
-				response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
-				if err != nil {
-					return errMsg{err}
+			// Only switch to the Artists view if in the main menu
+			if m.currentView == viewMenu {
+				m.artistTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToArtistsMsg{response}
 				}
-				return switchToArtistsMsg{response}
 			}
-
+	
 		case "s", "S":
-			// Switch to the Songs view
-			m.songTable.Focus()
-			return m, func() tea.Msg {
-				response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
-				if err != nil {
-					return errMsg{err}
+			// Only switch to the Songs view if in the main menu
+			if m.currentView == viewMenu {
+				m.songTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToSongsMsg{response}
 				}
-				return switchToSongsMsg{response}
 			}
 
 		case "right": // Handle next page for Artists or Songs
@@ -122,6 +126,37 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.err = fmt.Errorf("failed to log in: %v", err)
 					return m, nil
 				}
+
+				 // Fetch the user's information
+				me, err := fetchMe()
+				if err != nil {
+					m.err = fmt.Errorf("failed to fetch user info: %v", err)
+					return m, nil
+				}
+				m.me = me
+
+				
+
+				// Initialize artist table
+				m.artistTable = table.New(
+					table.WithColumns([]table.Column{
+						{Title: "Name", Width: 40},
+						{Title: "Genres", Width: 50},
+						{Title: "Popularity", Width: 10},
+					}),
+					table.WithFocused(false),
+				)
+			
+				// Initialize song table
+				m.songTable = table.New(
+					table.WithColumns([]table.Column{
+						{Title: "Name", Width: 40},
+						{Title: "Artist", Width: 20},
+						{Title: "Album", Width: 30},
+						{Title: "Popularity", Width: 10},
+					}),
+					table.WithFocused(false),
+				)
 
 				// Switch to the menu view after successful login
 				m.currentView = viewMenu

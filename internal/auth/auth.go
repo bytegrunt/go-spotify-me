@@ -168,9 +168,11 @@ func GetValidAccessToken() (string, bool) {
 	}
 
 	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
-	file, err := os.Open(filePath)
+
+	// Attempt to open the file
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
-		log.Printf("Failed to open token file: %v", err)
+		log.Printf("Failed to open or create token file: %v", err)
 		return "", false
 	}
 	defer file.Close()

@@ -38,7 +38,9 @@ func (m appModel) View() string {
         return m.artistTable.View() + "\n\n[↑/↓] Navigate | [←] Previous Page | [→] Next Page | [q] Back to Menu"
     case viewSongs:
         return m.songTable.View() + "\n\n[↑/↓] Navigate | [←] Previous Page | [→] Next Page | [q] Back to Menu"
-    default:
+	case viewEnterClientID:
+		return m.renderEnterClientID()
+	default:
         return "Unknown view"
     }
 }
