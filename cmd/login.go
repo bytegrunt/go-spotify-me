@@ -22,7 +22,7 @@ func Login() error {
 	clientId, err := GetClientID()
 
 	authConfig := auth.AuthConfig{
-		RedirectURI: "http://127.0.0.1:6969/callback",
+		RedirectURI: "http://127.0.0.1:9000/callback",
 		AuthURL:     "https://accounts.spotify.com/authorize",
 		TokenURL:    "https://accounts.spotify.com/api/token",
 		ClientID:    clientId,
@@ -112,7 +112,7 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 	wg.Add(1) // Add one task to the WaitGroup
 
 	server := &http.Server{
-		Addr: "127.0.0.1:6969",
+		Addr: "127.0.0.1:9000",
 	}
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
