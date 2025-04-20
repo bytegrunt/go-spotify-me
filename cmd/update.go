@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/zalando/go-keyring"
 )
@@ -108,9 +109,9 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Call the Login function after saving the Client ID
-				loginErr := Login()
-				if loginErr != nil {
-					m.err = fmt.Errorf("failed to log in: %v", loginErr)
+				err = Login()
+				if err != nil {
+					m.err = fmt.Errorf("failed to log in: %v", err)
 					return m, nil
 				}
 
@@ -125,10 +126,20 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case switchToArtistsMsg:
 		m.artists = msg.response
+		rows := []table.Row{}
+		for _, artist := range m.artists.Artists {
+			rows = append(rows, table.Row{artist.Name, artist.Genres, fmt.Sprintf("%d", artist.Popularity)})
+		}
+		m.artistTable.SetRows(rows)
 		m.currentView = viewArtists
-
+	
 	case switchToSongsMsg:
 		m.songs = msg.response
+		rows := []table.Row{}
+		for _, song := range m.songs.Songs {
+			rows = append(rows, table.Row{song.Name, song.Artist, song.Album, fmt.Sprintf("%d", song.Popularity)})
+		}
+		m.songTable.SetRows(rows)
 		m.currentView = viewSongs
 
 	case errMsg:

@@ -14,9 +14,9 @@ func (m appModel) View() string {
 	case viewMenu:
 		return m.renderMenu()
 	case viewArtists:
-		return m.renderArtists()
-	case viewSongs:
-		return m.renderSongs()
+        return m.artistTable.View() + "\n\n[←] Previous Page | [→] Next Page | [q] Back to Menu"
+    case viewSongs:
+        return m.songTable.View() + "\n\n[←] Previous Page | [→] Next Page | [q] Back to Menu"
 	case viewEnterClientID:
 		return m.renderEnterClientID()
 	default:
@@ -42,8 +42,8 @@ func (m appModel) renderMenu() string {
 		m.me.DisplayName,
 		m.me.Email,
 		m.me.Product,
-		m.me.ProfileURL,
 		m.me.Country,
+		m.me.ProfileURL,
 	)
 }
 
