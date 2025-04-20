@@ -69,24 +69,21 @@ func InitialAppModel(clientID string) appModel {
 		}
 	}
 
-	// Define columns for the tables
-    columns := []table.Column{
-        {Title: "Name", Width: 30},
-        {Title: "Genres", Width: 40},
-        {Title: "Popularity", Width: 10},
-    }
-
     // Initialize artist table
     artistTable := table.New(
-        table.WithColumns(columns),
+        table.WithColumns([]table.Column{
+			{Title: "Name", Width: 40},
+			{Title: "Genres", Width: 50},
+			{Title: "Popularity", Width: 10},
+		}),
         table.WithFocused(true),
     )
 
     // Initialize song table
     songTable := table.New(
         table.WithColumns([]table.Column{
-            {Title: "Name", Width: 30},
-            {Title: "Artist", Width: 30},
+            {Title: "Name", Width: 40},
+            {Title: "Artist", Width: 20},
             {Title: "Album", Width: 30},
             {Title: "Popularity", Width: 10},
         }),
