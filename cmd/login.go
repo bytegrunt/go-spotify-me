@@ -26,79 +26,79 @@ var forceLogin bool // Flag to force login
 
 // loginCmd represents the login command
 func Login() {
-		// Check if clientId is set
-		if clientId == "" {
-			log.Fatal("client-id is required. Set it via the environment variable SPOTIFY_CLIENT_ID or the --client-id flag.")
+	// Check if clientId is set
+	if clientId == "" {
+		log.Fatal("client-id is required. Set it via the environment variable SPOTIFY_CLIENT_ID or the --client-id flag.")
+	}
+
+	authConfig := auth.AuthConfig{
+		RedirectURI: "http://127.0.0.1:6969/callback",
+		AuthURL:     "https://accounts.spotify.com/authorize",
+		TokenURL:    "https://accounts.spotify.com/api/token",
+		ClientID:    clientId,
+	}
+
+	// Skip refresh token checks if force flag is set
+	if !forceLogin {
+		_, isValid := auth.GetValidAccessToken()
+		if isValid {
+			return
 		}
 
-		authConfig := auth.AuthConfig{
-			RedirectURI: "http://127.0.0.1:6969/callback",
-			AuthURL:     "https://accounts.spotify.com/authorize",
-			TokenURL:    "https://accounts.spotify.com/api/token",
-			ClientID:    clientId,
-		}
+		// Check for refresh token in the keyring
+		refreshToken, err := keyring.Get("go-spotify-cli", "refresh_token")
+		if err != nil {
+			logging.DebugLog("Refresh token not found in keyring: %v", err)
 
-		// Skip refresh token checks if force flag is set
-		if !forceLogin {
-			_, isValid := auth.GetValidAccessToken()
-			if isValid {
-				return
+			// Check for refresh token in the hidden file
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				log.Fatalf("Failed to get user home directory: %v", err)
 			}
 
-			// Check for refresh token in the keyring
-			refreshToken, err := keyring.Get("go-spotify-cli", "refresh_token")
-			if err != nil {
-				logging.DebugLog("Refresh token not found in keyring: %v", err)
-
-				// Check for refresh token in the hidden file
-				homeDir, err := os.UserHomeDir()
-				if err != nil {
-					log.Fatalf("Failed to get user home directory: %v", err)
-				}
-
-				filePath := filepath.Join(homeDir, ".go-spotify-cli")
-				data, err := os.ReadFile(filePath)
-				if err == nil {
-					lines := strings.Split(string(data), "\n")
-					for _, line := range lines {
-						if strings.HasPrefix(line, "refresh_token=") {
-							refreshToken = strings.TrimPrefix(line, "refresh_token=")
-							break
-						}
+			filePath := filepath.Join(homeDir, ".go-spotify-cli")
+			data, err := os.ReadFile(filePath)
+			if err == nil {
+				lines := strings.Split(string(data), "\n")
+				for _, line := range lines {
+					if strings.HasPrefix(line, "refresh_token=") {
+						refreshToken = strings.TrimPrefix(line, "refresh_token=")
+						break
 					}
 				}
 			}
+		}
 
-			// If a refresh token is found, try to refresh the access token
-			if refreshToken != "" {
-				logging.DebugLog("Using existing refresh token to get a new access token.")
-				err := auth.RefreshAccessToken(authConfig, refreshToken)
-				if err == nil {
-					return // Successfully refreshed the token, exit the command
-				}
-				logging.DebugLog("Failed to refresh access token: %v", err)
-				logging.DebugLog("Falling back to regular login flow.")
+		// If a refresh token is found, try to refresh the access token
+		if refreshToken != "" {
+			logging.DebugLog("Using existing refresh token to get a new access token.")
+			err := auth.RefreshAccessToken(authConfig, refreshToken)
+			if err == nil {
+				return // Successfully refreshed the token, exit the command
 			}
+			logging.DebugLog("Failed to refresh access token: %v", err)
+			logging.DebugLog("Falling back to regular login flow.")
 		}
+	}
 
-		// Generate the code verifier and code challenge
-		codeVerifier := auth.GenerateCodeVerifier()
-		codeChallenge := auth.GenerateCodeChallenge(codeVerifier)
+	// Generate the code verifier and code challenge
+	codeVerifier := auth.GenerateCodeVerifier()
+	codeChallenge := auth.GenerateCodeChallenge(codeVerifier)
 
-		// Generate the authorization URL
-		authURLWithParams := fmt.Sprintf("%s?client_id=%s&response_type=code&redirect_uri=%s&scope=user-read-private user-read-email user-top-read&code_challenge=%s&code_challenge_method=S256",
-			authConfig.AuthURL, url.QueryEscape(authConfig.ClientID), authConfig.RedirectURI, codeChallenge)
+	// Generate the authorization URL
+	authURLWithParams := fmt.Sprintf("%s?client_id=%s&response_type=code&redirect_uri=%s&scope=user-read-private user-read-email user-top-read&code_challenge=%s&code_challenge_method=S256",
+		authConfig.AuthURL, url.QueryEscape(authConfig.ClientID), authConfig.RedirectURI, codeChallenge)
 
-		logging.DebugLog("Generated authorization URL: %s", authURLWithParams)
+	logging.DebugLog("Generated authorization URL: %s", authURLWithParams)
 
-		// Open the URL in the default browser
-		err := openBrowser(authURLWithParams)
-		if err != nil {
-			log.Fatalf("Failed to open browser: %v", err)
-		}
+	// Open the URL in the default browser
+	err := openBrowser(authURLWithParams)
+	if err != nil {
+		log.Fatalf("Failed to open browser: %v", err)
+	}
 
-		// Start a local server to handle the callback
-		startCallbackServer(authConfig, codeVerifier)
+	// Start a local server to handle the callback
+	startCallbackServer(authConfig, codeVerifier)
 }
 
 func init() {

@@ -97,7 +97,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.songs = response
 			}
-		
+
 		case "p":
 			if m.currentView == viewArtists && m.artists.Prev != "" {
 				response, err := fetchArtistsPage(m.artists.Prev)
@@ -112,7 +112,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.songs = response
 			}
-		
+
 		}
 
 	// Handle window resize
@@ -183,7 +183,6 @@ func (m appModel) renderArtists() string {
 	return s.String()
 }
 
-
 func (m appModel) renderSongs() string {
 	var s strings.Builder
 
@@ -215,7 +214,6 @@ func (m appModel) renderSongs() string {
 	s.WriteString("\n[n] next, [p] previous, [q] back to menu\n")
 	return s.String()
 }
-
 
 func truncateOrPad(s string, width int) string {
 	if len(s) > width {
