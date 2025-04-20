@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -28,7 +25,7 @@ var forceLogin bool // Flag to force login
 func Login() {
 	// Check if clientId is set
 	if clientId == "" {
-		log.Fatal("client-id is required. Set it via the environment variable SPOTIFY_CLIENT_ID or the --client-id flag.")
+		log.Fatal("client-id is required. Set it via the environment variable SPOTIFY_CLIENT_ID")
 	}
 
 	authConfig := auth.AuthConfig{
@@ -101,12 +98,21 @@ func Login() {
 	startCallbackServer(authConfig, codeVerifier)
 }
 
-func init() {
-	// Set clientId from environment variable
-	envClientId := os.Getenv("SPOTIFY_CLIENT_ID")
-	if envClientId != "" {
-		clientId = envClientId
-	}
+// GetClientID retrieves the Client ID from the keyring or environment variable.
+func GetClientID() (string, error) {
+    // Check the keyring for the Client ID
+    clientID, err := keyring.Get("go-spotify-cli", "client_id")
+    if err == nil {
+        return clientID, nil
+    }
+
+    // Fallback to environment variable
+    clientID = os.Getenv("SPOTIFY_CLIENT_ID")
+    if clientID != "" {
+        return clientID, nil
+    }
+
+    return "", nil
 }
 
 // Start a local server to handle the callback

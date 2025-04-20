@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/zalando/go-keyring"
 )
 
 type viewType int
@@ -14,10 +16,13 @@ const (
 	viewLogin
 	viewArtists
 	viewSongs
+	viewEnterClientID
 )
 
 type appModel struct {
 	currentView viewType
+	clientID    string
+	textInput   textinput.Model // Text input for Client ID
 	artists     APIResponse
 	songs       APIResponse
 	windowSize  tea.WindowSizeMsg
@@ -44,13 +49,28 @@ func (m appModel) Init() tea.Cmd {
 	)
 }
 
-func InitialAppModel() appModel {
+func InitialAppModel(clientID string) appModel {
+	if clientID == "" {
+		ti := textinput.New()
+		ti.Placeholder = "Enter your Spotify Client ID"
+		ti.Focus()
+		ti.CharLimit = 100
+		ti.Width = 50
+
+		return appModel{
+			currentView: viewEnterClientID,
+			textInput:   ti,
+		}
+	}
 	return appModel{
 		currentView: viewMenu,
+		clientID:    clientID,
 	}
 }
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -66,6 +86,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "a", "A":
+			// Switch to the Artists view
 			return m, func() tea.Msg {
 				response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists")
 				if err != nil {
@@ -75,6 +96,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "s", "S":
+			// Switch to the Songs view
 			return m, func() tea.Msg {
 				response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks")
 				if err != nil {
@@ -83,51 +105,41 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return switchToSongsMsg{response}
 			}
 
-		case "n":
-			if m.currentView == viewArtists && m.artists.Next != "" {
-				response, err := fetchArtistsPage(m.artists.Next)
+		case "enter":
+			// Handle entering the Client ID
+			if m.currentView == viewEnterClientID {
+				m.clientID = m.textInput.Value()
+				err := keyring.Set("go-spotify-cli", "client_id", m.clientID)
 				if err != nil {
+					m.err = fmt.Errorf("failed to store client ID in keyring: %v", err)
 					return m, nil
 				}
-				m.artists = response
-			} else if m.currentView == viewSongs && m.songs.Next != "" {
-				response, err := fetchSongsPage(m.songs.Next)
-				if err != nil {
-					return m, nil
-				}
-				m.songs = response
+				m.currentView = viewLogin
+				return m, nil
 			}
-
-		case "p":
-			if m.currentView == viewArtists && m.artists.Prev != "" {
-				response, err := fetchArtistsPage(m.artists.Prev)
-				if err != nil {
-					return m, nil
-				}
-				m.artists = response
-			} else if m.currentView == viewSongs && m.songs.Prev != "" {
-				response, err := fetchSongsPage(m.songs.Prev)
-				if err != nil {
-					return m, nil
-				}
-				m.songs = response
-			}
-
 		}
 
-	// Handle window resize
 	case tea.WindowSizeMsg:
 		m.windowSize = msg
+
 	case switchToArtistsMsg:
 		m.artists = msg.response
 		m.currentView = viewArtists
+
 	case switchToSongsMsg:
 		m.songs = msg.response
 		m.currentView = viewSongs
+
 	case errMsg:
 		m.err = msg.err
 	}
-	return m, nil
+
+	// Update the text input model
+	if m.currentView == viewEnterClientID {
+		m.textInput, cmd = m.textInput.Update(msg)
+	}
+
+	return m, cmd
 }
 
 func (m appModel) View() string {
@@ -144,9 +156,18 @@ func (m appModel) View() string {
 		return m.renderArtists()
 	case viewSongs:
 		return m.renderSongs()
+	case viewEnterClientID:
+		return m.renderEnterClientID()
 	default:
 		return "Unknown view"
 	}
+}
+
+func (m appModel) renderEnterClientID() string {
+	return fmt.Sprintf(
+		"Enter your Spotify Client ID:\n\n%s\n\nPress Enter to confirm, or Esc to quit.",
+		m.textInput.View(),
+	)
 }
 
 func (m appModel) renderLogin() string {

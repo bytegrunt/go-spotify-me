@@ -1,33 +1,20 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/bytegrunt/go-spotify-me/cmd"
-	"github.com/bytegrunt/go-spotify-me/internal/auth"
-	"github.com/bytegrunt/go-spotify-me/internal/logging"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
-
-	_, isValid := auth.GetValidAccessToken()
-	if !isValid {
-		logging.DebugLog("Access token is not valid. Running login command...")
-		cmd.Login()
-		_, isValid = auth.GetValidAccessToken()
-		if !isValid {
-			fmt.Println("Failed to obtain a valid access token after login.")
-			return
-		}
+	clientID, err := cmd.GetClientID()
+	if err != nil {
+		log.Fatalf("Failed to retrieve client ID: %v", err)
 	}
 
-	// Initialize the app model
-	p := tea.NewProgram(cmd.InitialAppModel(), tea.WithAltScreen())
+	// Initialize the app model with the client ID
+	p := tea.NewProgram(cmd.InitialAppModel(clientID), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("Error starting TUI: %v", err)
 	}
