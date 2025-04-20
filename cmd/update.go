@@ -72,6 +72,70 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
+		case "1":
+			// fetch short term artists or songs
+			if m.currentView == viewSongs {
+				m.songTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=short_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToSongsMsg{response}
+				}
+			} else if m.currentView == viewArtists {
+				m.artistTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=short_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToArtistsMsg{response}
+				}
+            }
+		case "2":
+			// medium
+			if m.currentView == viewSongs {
+				m.songTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToSongsMsg{response}
+				}
+			} else if m.currentView == viewArtists {
+				m.artistTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToArtistsMsg{response}
+				}
+            }
+		case "3":
+			// long
+			if m.currentView == viewSongs {
+				m.songTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=long_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToSongsMsg{response}
+				}
+			} else if m.currentView == viewArtists {
+				m.artistTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=long_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToArtistsMsg{response}
+				}
+            }
+
 		case "right": // Handle next page for Artists or Songs
 			if m.currentView == viewArtists && m.artists.Next != "" {
 				return m, func() tea.Msg {
