@@ -105,6 +105,44 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return switchToSongsMsg{response}
 			}
 
+		case "right": // Handle next page for Artists or Songs
+			if m.currentView == viewArtists && m.artists.Next != "" {
+				return m, func() tea.Msg {
+					response, err := fetchArtistsPage(m.artists.Next)
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToArtistsMsg{response}
+				}
+			} else if m.currentView == viewSongs && m.songs.Next != "" {
+				return m, func() tea.Msg {
+					response, err := fetchSongsPage(m.songs.Next)
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToSongsMsg{response}
+				}
+			}
+
+		case "left": // Handle previous page for Artists or Songs
+			if m.currentView == viewArtists && m.artists.Prev != "" {
+				return m, func() tea.Msg {
+					response, err := fetchArtistsPage(m.artists.Prev)
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToArtistsMsg{response}
+				}
+			} else if m.currentView == viewSongs && m.songs.Prev != "" {
+				return m, func() tea.Msg {
+					response, err := fetchSongsPage(m.songs.Prev)
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToSongsMsg{response}
+				}
+			}
+
 		case "enter":
 			// Handle entering the Client ID
 			if m.currentView == viewEnterClientID {
@@ -209,7 +247,7 @@ func (m appModel) renderArtists() string {
 			artist.Popularity,
 		))
 	}
-	s.WriteString("\n[n] next, [p] previous, [q] back to menu\n")
+	s.WriteString("\n[←] previous, [→] next, [q] back to menu\n")
 	return s.String()
 }
 
@@ -241,7 +279,7 @@ func (m appModel) renderSongs() string {
 			song.Popularity,
 		))
 	}
-	s.WriteString("\n[n] next, [p] previous, [q] back to menu\n")
+	s.WriteString("\n[←] previous, [→] next, [q] back to menu\n")
 	return s.String()
 }
 
