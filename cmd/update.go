@@ -7,6 +7,13 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+type APIResponse struct {
+	Artists []Artist
+	Songs   []Song
+	Next    string
+	Prev    string
+}
+
 type switchToArtistsMsg struct {
 	response APIResponse
 }

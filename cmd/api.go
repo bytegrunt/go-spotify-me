@@ -7,13 +7,6 @@ import (
 	"net/http"
 )
 
-type APIResponse struct {
-	Artists []Artist
-	Songs   []Song
-	Next    string
-	Prev    string
-}
-
 // MakeAPIRequest makes a GET request to the Spotify API and returns the response or an error
 func MakeAPIRequest(token string, url string) (map[string]interface{}, error) {
 	req, err := http.NewRequest("GET", url, nil)
