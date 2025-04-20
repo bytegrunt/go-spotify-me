@@ -141,9 +141,8 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 		}
 	}()
 
-	// Wait for the server to finish or timeout after 120 seconds
 	go func() {
-		time.Sleep(120 * time.Second)
+		time.Sleep(180 * time.Second)
 		log.Println("Timeout reached. Shutting down the server.")
 		server.Close()
 		wg.Done() // Mark the task as done if timeout occurs
