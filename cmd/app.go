@@ -25,18 +25,6 @@ type appModel struct {
 	err         error
 }
 
-type switchToArtistsMsg struct {
-	response APIResponse
-}
-
-type switchToSongsMsg struct {
-	response APIResponse
-}
-
-type errMsg struct {
-	err error
-}
-
 func (m appModel) Init() tea.Cmd {
 	return tea.Batch(
 		tea.EnterAltScreen,

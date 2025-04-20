@@ -7,6 +7,18 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+type switchToArtistsMsg struct {
+	response APIResponse
+}
+
+type switchToSongsMsg struct {
+	response APIResponse
+}
+
+type errMsg struct {
+	err error
+}
+
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
