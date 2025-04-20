@@ -6,7 +6,7 @@ import (
 
 // Me represents the user information from the /me endpoint
 type Me struct {
-	Country 	string
+	Country     string
 	DisplayName string
 	Email       string
 	Product     string
@@ -29,7 +29,7 @@ func fetchMe() (Me, error) {
 	profileURL, _ := externalURLs["spotify"].(string)
 
 	return Me{
-		Country: country,
+		Country:     country,
 		DisplayName: displayName,
 		Email:       email,
 		Product:     product,

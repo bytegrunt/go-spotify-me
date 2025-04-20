@@ -34,17 +34,17 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
-            // Return to the menu and blur the table
-            if m.currentView == viewArtists {
-                m.artistTable.Blur()
-            } else if m.currentView == viewSongs {
-                m.songTable.Blur()
-            }
-            if m.currentView != viewMenu {
-                m.currentView = viewMenu
-                return m, nil
-            }
-            return m, tea.Quit
+			// Return to the menu and blur the table
+			if m.currentView == viewArtists {
+				m.artistTable.Blur()
+			} else if m.currentView == viewSongs {
+				m.songTable.Blur()
+			}
+			if m.currentView != viewMenu {
+				m.currentView = viewMenu
+				return m, nil
+			}
+			return m, tea.Quit
 
 		case "a", "A":
 			// Only switch to the Artists view if in the main menu
@@ -58,7 +58,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return switchToArtistsMsg{response}
 				}
 			}
-	
+
 		case "s", "S":
 			// Only switch to the Songs view if in the main menu
 			if m.currentView == viewMenu {
@@ -92,7 +92,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return switchToArtistsMsg{response}
 				}
-            }
+			}
 		case "2":
 			// medium
 			if m.currentView == viewSongs {
@@ -113,7 +113,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return switchToArtistsMsg{response}
 				}
-            }
+			}
 		case "3":
 			// long
 			if m.currentView == viewSongs {
@@ -134,7 +134,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return switchToArtistsMsg{response}
 				}
-            }
+			}
 
 		case "right": // Handle next page for Artists or Songs
 			if m.currentView == viewArtists && m.artists.Next != "" {
@@ -191,15 +191,13 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				 // Fetch the user's information
+				// Fetch the user's information
 				me, err := fetchMe()
 				if err != nil {
 					m.err = fmt.Errorf("failed to fetch user info: %v", err)
 					return m, nil
 				}
 				m.me = me
-
-				
 
 				// Initialize artist table
 				m.artistTable = table.New(
@@ -210,7 +208,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}),
 					table.WithFocused(false),
 				)
-			
+
 				// Initialize song table
 				m.songTable = table.New(
 					table.WithColumns([]table.Column{
@@ -229,14 +227,18 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Delegate key events to the focused table
-        if m.currentView == viewArtists {
-            m.artistTable, cmd = m.artistTable.Update(msg)
-        } else if m.currentView == viewSongs {
-            m.songTable, cmd = m.songTable.Update(msg)
-        }
+		if m.currentView == viewArtists {
+			m.artistTable, cmd = m.artistTable.Update(msg)
+		} else if m.currentView == viewSongs {
+			m.songTable, cmd = m.songTable.Update(msg)
+		}
 
 	case tea.WindowSizeMsg:
 		m.windowSize = msg
+
+		// Recalculate column widths
+		m.artistColWidths = calculateColumnWidths(msg.Width, []float64{0.4, 0.4, 0.2})
+		m.songColWidths = calculateColumnWidths(msg.Width, []float64{0.4, 0.3, 0.2, 0.1})
 
 	case switchToArtistsMsg:
 		m.artists = msg.response
@@ -246,7 +248,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.artistTable.SetRows(rows)
 		m.currentView = viewArtists
-	
+
 	case switchToSongsMsg:
 		m.songs = msg.response
 		rows := []table.Row{}

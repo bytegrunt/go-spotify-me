@@ -18,16 +18,18 @@ const (
 )
 
 type appModel struct {
-	currentView viewType
-	clientID    string
-	me          Me              // User information
-	textInput   textinput.Model // Text input for Client ID
-	artists     APIResponse
-	songs       APIResponse
-	artistTable table.Model // Table for artists
-    songTable   table.Model // Table for songs
-	windowSize  tea.WindowSizeMsg
-	err         error
+	currentView     viewType
+	clientID        string
+	me              Me              // User information
+	textInput       textinput.Model // Text input for Client ID
+	artists         APIResponse
+	songs           APIResponse
+	artistTable     table.Model // Table for artists
+	artistColWidths []int
+	songTable       table.Model // Table for songs
+	songColWidths   []int
+	windowSize      tea.WindowSizeMsg
+	err             error
 }
 
 func (m appModel) Init() tea.Cmd {
@@ -69,32 +71,36 @@ func InitialAppModel(clientID string) appModel {
 		}
 	}
 
-    // Initialize artist table
-    artistTable := table.New(
-        table.WithColumns([]table.Column{
+	// Initialize artist table
+	artistColWidths := calculateColumnWidths(100, []float64{0.4, 0.4, 0.2})
+	artistTable := table.New(
+		table.WithColumns([]table.Column{
 			{Title: "Name", Width: 40},
 			{Title: "Genres", Width: 50},
 			{Title: "Popularity", Width: 10},
 		}),
-        table.WithFocused(false),
-    )
+		table.WithFocused(false),
+	)
 
-    // Initialize song table
-    songTable := table.New(
-        table.WithColumns([]table.Column{
-            {Title: "Name", Width: 40},
-            {Title: "Artist", Width: 20},
-            {Title: "Album", Width: 30},
-            {Title: "Popularity", Width: 10},
-        }),
-        table.WithFocused(false),
-    )
+	// Initialize song table
+	songColWidths := calculateColumnWidths(100, []float64{0.4, 0.3, 0.2, 0.1})
+	songTable := table.New(
+		table.WithColumns([]table.Column{
+			{Title: "Name", Width: 40},
+			{Title: "Artist", Width: 20},
+			{Title: "Album", Width: 30},
+			{Title: "Popularity", Width: 10},
+		}),
+		table.WithFocused(false),
+	)
 
 	return appModel{
-		currentView: viewMenu,
-        clientID:    clientID,
-        me:          me,
-        artistTable: artistTable,
-        songTable:   songTable,
+		currentView:     viewMenu,
+		clientID:        clientID,
+		me:              me,
+		artistTable:     artistTable,
+		artistColWidths: artistColWidths,
+		songTable:       songTable,
+		songColWidths:   songColWidths,
 	}
 }
