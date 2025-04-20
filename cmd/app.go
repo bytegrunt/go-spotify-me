@@ -76,7 +76,7 @@ func InitialAppModel(clientID string) appModel {
 			{Title: "Genres", Width: 50},
 			{Title: "Popularity", Width: 10},
 		}),
-        table.WithFocused(true),
+        table.WithFocused(false),
     )
 
     // Initialize song table
@@ -87,7 +87,7 @@ func InitialAppModel(clientID string) appModel {
             {Title: "Album", Width: 30},
             {Title: "Popularity", Width: 10},
         }),
-        table.WithFocused(true),
+        table.WithFocused(false),
     )
 
 	return appModel{

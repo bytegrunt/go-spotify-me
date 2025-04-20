@@ -34,13 +34,20 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
-			if m.currentView != viewMenu {
-				m.currentView = viewMenu
-				return m, nil
-			}
-			return m, tea.Quit
+            // Return to the menu and blur the table
+            if m.currentView == viewArtists {
+                m.artistTable.Blur()
+            } else if m.currentView == viewSongs {
+                m.songTable.Blur()
+            }
+            if m.currentView != viewMenu {
+                m.currentView = viewMenu
+                return m, nil
+            }
+            return m, tea.Quit
 
 		case "a", "A":
+			m.artistTable.Focus()
 			// Switch to the Artists view
 			return m, func() tea.Msg {
 				response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
@@ -52,6 +59,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "s", "S":
 			// Switch to the Songs view
+			m.songTable.Focus()
 			return m, func() tea.Msg {
 				response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
 				if err != nil {
@@ -120,6 +128,13 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+
+		// Delegate key events to the focused table
+        if m.currentView == viewArtists {
+            m.artistTable, cmd = m.artistTable.Update(msg)
+        } else if m.currentView == viewSongs {
+            m.songTable, cmd = m.songTable.Update(msg)
+        }
 
 	case tea.WindowSizeMsg:
 		m.windowSize = msg
