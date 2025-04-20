@@ -13,6 +13,8 @@ func main() {
 		log.Fatalf("Failed to retrieve client ID: %v", err)
 	}
 
+	cmd.Login()
+
 	// Initialize the app model with the client ID
 	p := tea.NewProgram(cmd.InitialAppModel(clientID), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
