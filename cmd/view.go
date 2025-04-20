@@ -33,7 +33,7 @@ func (m appModel) renderEnterClientID() string {
 
 func (m appModel) renderMenu() string {
 	return fmt.Sprintf(
-		"Welcome, %s (%s)\nProduct: %s\n\n"+
+		"Welcome, %s (%s)\nProduct: %s, Country:%s\n\n"+
 			"Menu:\n"+
 			"Press A for Top Artists\n"+
 			"Press S for Top Songs\n"+
@@ -43,6 +43,7 @@ func (m appModel) renderMenu() string {
 		m.me.Email,
 		m.me.Product,
 		m.me.ProfileURL,
+		m.me.Country,
 	)
 }
 
