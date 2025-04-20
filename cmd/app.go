@@ -69,6 +69,7 @@ func InitialAppModel(clientID string) appModel {
 			DisplayName: "Unknown",
 			Email:       "Unknown",
 			Product:     "Unknown",
+			ProfileURL:  "Unknown",
 		}
 	}
 
@@ -223,17 +224,18 @@ func (m appModel) renderEnterClientID() string {
 }
 
 func (m appModel) renderMenu() string {
-	return fmt.Sprintf(
-		"Welcome, %s (%s)\nProduct: %s\n\n"+
-			"Menu:\n"+
-			"Press A for Top Artists\n"+
-			"Press S for Top Songs\n"+
-			"Press Q to quit\n\n"+
-			"Developer Dashboard: https://developer.spotify.com/dashboard\n",
-		m.me.DisplayName,
-		m.me.Email,
-		m.me.Product,
-	)
+    return fmt.Sprintf(
+        "Welcome, %s (%s)\nProduct: %s\n\n"+
+            "Menu:\n"+
+            "Press A for Top Artists\n"+
+            "Press S for Top Songs\n"+
+            "Press Q to quit\n\n"+
+            "My Spotify Profile: %s\n",
+        m.me.DisplayName,
+        m.me.Email,
+        m.me.Product,
+        m.me.ProfileURL,
+    )
 }
 
 func (m appModel) renderArtists() string {
