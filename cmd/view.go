@@ -60,17 +60,26 @@ func (m appModel) renderEnterClientID() string {
 }
 
 func (m appModel) renderMenu() string {
-	return fmt.Sprintf(
-		"Welcome, %s (%s)\nProduct: %s, Country:%s\n\n"+
-			"Menu:\n"+
-			"Press A for Top Artists\n"+
-			"Press S for Top Songs\n"+
-			"Press Q to quit\n\n"+
-			"My Spotify Profile: %s\n",
-		m.me.DisplayName,
-		m.me.Email,
-		m.me.Product,
-		m.me.Country,
-		m.me.ProfileURL,
-	)
+	rows := [][]string{
+		{"Name", m.me.DisplayName},
+		{"Email", m.me.Email},
+		{"Product", m.me.Product},
+		{"Country", m.me.Country},
+		{"Profile URL", m.me.ProfileURL},
+	}
+
+	if m.windowSize.Width < 20 {
+		m.windowSize.Width = 20
+	}
+
+	colWidths := calculateColumnWidths(m.windowSize.Width, []float64{0.3, 0.7})
+
+	var renderedRows []string
+	header := theme.RenderRow([]string{"Field", "Value"}, colWidths, theme.HeaderStyle)
+	for _, row := range rows {
+		renderedRows = append(renderedRows, theme.RenderRow(row, colWidths, theme.RowStyle))
+	}
+
+	table := header + "\n" + strings.Join(renderedRows, "\n")
+	return theme.TableContainerStyle.Render(table) + "\n" + theme.HelpStyle.Render("[A] Top Artists  [S] Top Songs  [Q] Quit")
 }

@@ -55,17 +55,24 @@ var HelpStyle = lipgloss.NewStyle().
 func RenderRow(cells []string, widths []int, style lipgloss.Style) string {
 	rendered := make([]string, len(cells))
 	for i, cell := range cells {
-		rendered[i] = truncateOrPad(cell, widths[i])
+		rendered[i] = TruncateOrPad(cell, widths[i])
 	}
 	return style.Render(strings.Join(rendered, " | "))
 }
 
-func truncateOrPad(s string, width int) string {
-	if len(s) > width {
-		if width > 3 {
-			return s[:width-3] + "..."
-		}
-		return s[:width]
+func TruncateOrPad(s string, width int) string {
+	if width <= 0 {
+		return ""
 	}
+
+	runes := []rune(s) // support unicode
+
+	if len(runes) > width {
+		if width > 3 {
+			return string(runes[:width-3]) + "..."
+		}
+		return string(runes[:width])
+	}
+
 	return fmt.Sprintf("%-*s", width, s)
 }
