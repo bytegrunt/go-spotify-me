@@ -238,7 +238,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Recalculate column widths
 		m.artistColWidths = calculateColumnWidths(msg.Width, []float64{0.4, 0.4, 0.2})
-		m.songColWidths = calculateColumnWidths(msg.Width, []float64{0.4, 0.3, 0.2, 0.1})
+		m.songColWidths = calculateColumnWidths(msg.Width, []float64{0.4, 0.2, 0.2, 0.2})
 
 	case switchToArtistsMsg:
 		m.artists = msg.response
