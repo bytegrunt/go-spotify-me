@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,7 +16,18 @@ import (
 
 	"github.com/bytegrunt/go-spotify-me/internal/logging"
 	"github.com/zalando/go-keyring"
+	"go.uber.org/zap"
 )
+
+var logger *zap.Logger
+
+func init() {
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		logger.Fatal("Failed to initialize zap logger", zap.Error(err))
+	}
+}
 
 type AuthConfig struct {
 	RedirectURI string
@@ -31,7 +41,7 @@ func GenerateCodeVerifier() string {
 	verifier := make([]byte, 64)
 	_, err := cryptoRand.Read(verifier) // Use crypto/rand for secure random bytes
 	if err != nil {
-		log.Fatalf("Failed to generate secure random bytes: %v", err)
+		logger.Fatal("Failed to generate secure random bytes", zap.Error(err))
 	}
 
 	// Convert bytes to a-z characters
@@ -58,29 +68,29 @@ func ExchangeCodeForToken(authConfig AuthConfig, code, codeVerifier string) {
 
 	req, err := http.NewRequest("POST", authConfig.TokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
-		log.Fatalf("Failed to create token request: %v", err)
+		logger.Fatal("Failed to create token request", zap.Error(err))
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("Failed to exchange code for token: %v", err)
+		logger.Fatal("Failed to exchange code for token", zap.Error(err))
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("Error closing response body: %v", err)
+			logger.Error("Error closing response body", zap.Error(err))
 		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Fatalf("Failed to get token: %s", body)
+		logger.Fatal("Failed to get token", zap.String("body", string(body)))
 	}
 
 	var tokenResponse map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		log.Fatalf("Failed to parse token response: %v", err)
+		logger.Fatal("Failed to parse token response", zap.Error(err))
 	}
 
 	accessToken := tokenResponse["access_token"].(string)
@@ -100,24 +110,24 @@ func ExchangeCodeForToken(authConfig AuthConfig, code, codeVerifier string) {
 func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time.Time) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("Failed to get user home directory: %v", err)
+		logger.Fatal("Failed to get user home directory", zap.Error(err))
 	}
 
 	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
 
 	// Validate that the filePath is within the user's home directory
 	if !strings.HasPrefix(filePath, homeDir) {
-		log.Fatalf("Invalid file path: %s", filePath)
+		logger.Fatal("Invalid file path", zap.String("filePath", filePath))
 	}
 
 	// Attempt to open the file
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
-		log.Fatalf("Failed to open file for writing: %v", err)
+		logger.Fatal("Failed to open file for writing", zap.Error(err))
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Printf("Error closing file: %v", err)
+			logger.Error("Error closing file", zap.Error(err))
 		}
 	}()
 
@@ -126,8 +136,8 @@ func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time
 	// Attempt to store the refresh token in the keyring
 	err = keyring.Set("go-spotify-me-cli", "refresh_token", refreshToken)
 	if err != nil {
-		log.Printf("Failed to store refresh token in keyring: %v", err)
-		log.Println("Falling back to saving the refresh token in the hidden file.")
+		logger.Error("Failed to store refresh token in keyring", zap.Error(err))
+		logger.Info("Falling back to saving the refresh token in the hidden file.")
 		data = fmt.Sprintf("access_token=%s\nrefresh_token=%s\nexpires_at=%s\n", accessToken, refreshToken, expirationTime.Format(time.RFC3339))
 	} else {
 		data = fmt.Sprintf("access_token=%s\nexpires_at=%s\n", accessToken, expirationTime.Format(time.RFC3339))
@@ -135,7 +145,7 @@ func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time
 
 	_, err = file.WriteString(data)
 	if err != nil {
-		log.Fatalf("Failed to write to file: %v", err)
+		logger.Fatal("Failed to write to file", zap.Error(err))
 	}
 
 	logging.DebugLog("Access token saved to %s", filePath)
@@ -161,7 +171,7 @@ func RefreshAccessToken(authConfig AuthConfig, refreshToken string) error {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("Error closing response body: %v", err)
+			logger.Error("Error closing response body", zap.Error(err))
 		}
 	}()
 
@@ -188,30 +198,30 @@ func RefreshAccessToken(authConfig AuthConfig, refreshToken string) error {
 func GetValidAccessToken() (string, bool) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("Failed to get user home directory: %v", err)
+		logger.Fatal("Failed to get user home directory", zap.Error(err))
 	}
 
 	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
 
 	// Validate that the filePath is within the user's home directory
 	if !strings.HasPrefix(filePath, homeDir) {
-		log.Fatalf("Invalid file path: %s", filePath)
+		logger.Fatal("Invalid file path", zap.String("filePath", filePath))
 	}
 
 	// Attempt to open the file
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
-		log.Fatalf("Failed to open file: %v", err)
+		logger.Fatal("Failed to open file", zap.Error(err))
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Printf("Error closing file: %v", err)
+			logger.Error("Error closing file", zap.Error(err))
 		}
 	}()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		log.Printf("Failed to read token file: %v", err)
+		logger.Error("Failed to read token file", zap.Error(err))
 		return "", false
 	}
 
@@ -231,7 +241,7 @@ func GetValidAccessToken() (string, bool) {
 
 	expirationTime, err := time.Parse(time.RFC3339, expiresAtStr)
 	if err != nil {
-		log.Printf("Failed to parse expiration time: %v", err)
+		logger.Error("Failed to parse expiration time", zap.Error(err))
 		return "", false
 	}
 

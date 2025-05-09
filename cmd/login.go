@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,9 +13,19 @@ import (
 	"time"
 
 	"github.com/bytegrunt/go-spotify-me/internal/auth"
-	"github.com/bytegrunt/go-spotify-me/internal/logging"
 	"github.com/zalando/go-keyring"
+	"go.uber.org/zap"
 )
+
+var logger *zap.Logger
+
+func init() {
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		logger.Fatal("Failed to initialize zap logger", zap.Error(err))
+	}
+}
 
 func Login() error {
 	clientID, err := GetClientID()
@@ -39,19 +48,19 @@ func Login() error {
 	// Check for refresh token in the keyring
 	refreshToken, err := keyring.Get("go-spotify-me-cli", "refresh_token")
 	if err != nil {
-		logging.DebugLog("Refresh token not found in keyring: %v", err)
+		logger.Debug("Refresh token not found in keyring", zap.Error(err))
 
 		// Check for refresh token in the hidden file
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatalf("Failed to get user home directory: %v", err)
+			logger.Fatal("Failed to get user home directory", zap.Error(err))
 		}
 
 		filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
 
 		// Validate that the filePath is within the user's home directory
 		if !strings.HasPrefix(filePath, homeDir) {
-			log.Fatalf("Invalid file path: %s", filePath)
+			logger.Fatal("Invalid file path", zap.String("filePath", filePath))
 		}
 
 		// Attempt to read the file
@@ -69,13 +78,13 @@ func Login() error {
 
 	// If a refresh token is found, try to refresh the access token
 	if refreshToken != "" {
-		logging.DebugLog("Using existing refresh token to get a new access token.")
+		logger.Debug("Using existing refresh token to get a new access token.")
 		err := auth.RefreshAccessToken(authConfig, refreshToken)
 		if err == nil {
 			return nil // Successfully refreshed the token, exit the command
 		}
-		logging.DebugLog("Failed to refresh access token: %v", err)
-		logging.DebugLog("Falling back to regular login flow.")
+		logger.Debug("Failed to refresh access token", zap.Error(err))
+		logger.Debug("Falling back to regular login flow.")
 	}
 
 	// Generate the code verifier and code challenge
@@ -86,12 +95,12 @@ func Login() error {
 	authURLWithParams := fmt.Sprintf("%s?client_id=%s&response_type=code&redirect_uri=%s&scope=user-read-private user-read-email user-top-read&code_challenge=%s&code_challenge_method=S256",
 		authConfig.AuthURL, url.QueryEscape(authConfig.ClientID), authConfig.RedirectURI, codeChallenge)
 
-	logging.DebugLog("Generated authorization URL: %s", authURLWithParams)
+	logger.Debug("Generated authorization URL", zap.String("url", authURLWithParams))
 
 	// Open the URL in the default browser
 	err = openBrowser(authURLWithParams)
 	if err != nil {
-		log.Fatalf("Failed to open browser: %v", err)
+		logger.Error("Failed to open browser", zap.Error(err))
 	}
 
 	// Start a local server to handle the callback
@@ -135,14 +144,14 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 		}
 
 		if _, err := fmt.Fprintln(w, "Authorization successful! You can close this window."); err != nil {
-			log.Printf("Error writing response: %v", err)
+			logger.Error("Error writing response", zap.Error(err))
 		}
 
 		// Exchange the authorization code for an access token
 		go func() {
 			auth.ExchangeCodeForToken(authConfig, code, codeVerifier)
 			if err := server.Close(); err != nil {
-				log.Printf("Error closing server: %v", err)
+				logger.Error("Error closing server", zap.Error(err))
 			}
 			wg.Done() // Mark the task as done
 		}()
@@ -150,17 +159,17 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 
 	// Start the server
 	go func() {
-		log.Println("Waiting for the authorization code...")
+		logger.Info("Waiting for the authorization code...")
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+			logger.Fatal("Server error", zap.Error(err))
 		}
 	}()
 
 	go func() {
 		time.Sleep(180 * time.Second)
-		log.Println("Timeout reached. Shutting down the server.")
+		logger.Info("Timeout reached. Shutting down the server.")
 		if err := server.Close(); err != nil {
-			log.Printf("Error closing server: %v", err)
+			logger.Error("Error closing server", zap.Error(err))
 		}
 		wg.Done() // Mark the task as done if timeout occurs
 	}()

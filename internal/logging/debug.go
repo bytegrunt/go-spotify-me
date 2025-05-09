@@ -1,12 +1,15 @@
 package logging
 
-import "log"
+import (
+	"go.uber.org/zap"
+)
 
 var Debug bool
 
 // DebugLog prints debug messages if Debug is enabled.
 func DebugLog(format string, v ...interface{}) {
 	if Debug {
-		log.Printf(format, v...)
+		logger, _ := zap.NewProduction()
+		logger.Debug(format, zap.Any("args", v))
 	}
 }
