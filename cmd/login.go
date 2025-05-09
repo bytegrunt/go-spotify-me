@@ -19,15 +19,21 @@ import (
 
 var logger *zap.Logger
 
-func init() {
+func InitializeLogger() error {
 	var err error
 	logger, err = zap.NewProduction()
 	if err != nil {
-		logger.Fatal("Failed to initialize zap logger", zap.Error(err))
+		return fmt.Errorf("failed to initialize zap logger: %w", err)
 	}
+	return nil
 }
 
 func Login() error {
+	// Initialize the logger
+	if err := InitializeLogger(); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
 	clientID, err := GetClientID()
 	if err != nil {
 		return fmt.Errorf("failed to get client ID: %w", err)

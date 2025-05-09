@@ -9,17 +9,25 @@ import (
 	"go.uber.org/zap"
 )
 
+// Removed the init function and replaced it with an explicit InitializeLogger function.
 var logger *zap.Logger
 
-func init() {
+func InitializeLogger() error {
 	var err error
 	logger, err = zap.NewProduction()
 	if err != nil {
-		logger.Fatal("Failed to initialize zap logger", zap.Error(err))
+		return fmt.Errorf("failed to initialize zap logger: %w", err)
 	}
+	return nil
 }
 
 func main() {
+	// Initialize the logger
+	if err := InitializeLogger(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Check for the --clear-config flag
 	for _, arg := range os.Args {
 		if arg == "--clear-config" {

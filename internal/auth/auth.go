@@ -21,14 +21,6 @@ import (
 
 var logger *zap.Logger
 
-func init() {
-	var err error
-	logger, err = zap.NewProduction()
-	if err != nil {
-		logger.Fatal("Failed to initialize zap logger", zap.Error(err))
-	}
-}
-
 type AuthConfig struct {
 	RedirectURI string
 	AuthURL     string
