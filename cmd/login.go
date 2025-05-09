@@ -20,6 +20,9 @@ import (
 
 func Login() error {
 	clientId, err := GetClientID()
+	if err != nil {
+		return fmt.Errorf("failed to get client ID: %v", err)
+	}
 
 	authConfig := auth.AuthConfig{
 		RedirectURI: "http://127.0.0.1:9000/callback",
@@ -123,13 +126,17 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 			return
 		}
 
-		fmt.Fprintln(w, "Authorization successful! You can close this window.")
+		if _, err := fmt.Fprintln(w, "Authorization successful! You can close this window."); err != nil {
+			log.Printf("Error writing response: %v", err)
+		}
 
 		// Exchange the authorization code for an access token
 		go func() {
 			auth.ExchangeCodeForToken(authConfig, code, codeVerifier)
-			server.Close() // Close the server after processing the token
-			wg.Done()      // Mark the task as done
+			if err := server.Close(); err != nil {
+				log.Printf("Error closing server: %v", err)
+			}
+			wg.Done() // Mark the task as done
 		}()
 	})
 
@@ -144,7 +151,9 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 	go func() {
 		time.Sleep(180 * time.Second)
 		log.Println("Timeout reached. Shutting down the server.")
-		server.Close()
+		if err := server.Close(); err != nil {
+			log.Printf("Error closing server: %v", err)
+		}
 		wg.Done() // Mark the task as done if timeout occurs
 	}()
 

@@ -62,7 +62,11 @@ func ExchangeCodeForToken(authConfig AuthConfig, code, codeVerifier string) {
 	if err != nil {
 		log.Fatalf("Failed to exchange code for token: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Error closing response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -99,7 +103,11 @@ func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time
 	if err != nil {
 		log.Fatalf("Failed to open file for writing: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing file: %v", err)
+		}
+	}()
 
 	var data string
 
@@ -139,7 +147,11 @@ func RefreshAccessToken(authConfig AuthConfig, refreshToken string) error {
 	if err != nil {
 		return fmt.Errorf("failed to refresh token: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Error closing response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -175,7 +187,11 @@ func GetValidAccessToken() (string, bool) {
 		log.Printf("Failed to open or create token file: %v", err)
 		return "", false
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing file: %v", err)
+		}
+	}()
 
 	data, err := io.ReadAll(file)
 	if err != nil {

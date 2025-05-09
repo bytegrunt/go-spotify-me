@@ -35,9 +35,10 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "esc":
 			// Return to the menu and blur the table
-			if m.currentView == viewArtists {
+			switch m.currentView {
+			case viewArtists:
 				m.artistTable.Blur()
-			} else if m.currentView == viewSongs {
+			case viewSongs:
 				m.songTable.Blur()
 			}
 			if m.currentView != viewMenu {
@@ -74,16 +75,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "1":
 			// fetch short term artists or songs
-			if m.currentView == viewSongs {
-				m.songTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=short_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToSongsMsg{response}
-				}
-			} else if m.currentView == viewArtists {
+			switch m.currentView {
+			case viewArtists:
 				m.artistTable.Focus()
 				return m, func() tea.Msg {
 					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=short_term")
@@ -92,10 +85,20 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return switchToArtistsMsg{response}
 				}
+			case viewSongs:
+				m.songTable.Focus()
+				return m, func() tea.Msg {
+					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=short_term")
+					if err != nil {
+						return errMsg{err}
+					}
+					return switchToSongsMsg{response}
+				}
 			}
 		case "2":
 			// medium
-			if m.currentView == viewSongs {
+			switch m.currentView {
+			case viewSongs:
 				m.songTable.Focus()
 				return m, func() tea.Msg {
 					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
@@ -104,7 +107,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return switchToSongsMsg{response}
 				}
-			} else if m.currentView == viewArtists {
+
+			case viewArtists:
 				m.artistTable.Focus()
 				return m, func() tea.Msg {
 					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
@@ -116,7 +120,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "3":
 			// long
-			if m.currentView == viewSongs {
+			switch m.currentView {
+			case viewSongs:
 				m.songTable.Focus()
 				return m, func() tea.Msg {
 					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=long_term")
@@ -125,7 +130,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return switchToSongsMsg{response}
 				}
-			} else if m.currentView == viewArtists {
+			case viewArtists:
 				m.artistTable.Focus()
 				return m, func() tea.Msg {
 					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=long_term")
@@ -227,9 +232,10 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Delegate key events to the focused table
-		if m.currentView == viewArtists {
+		switch m.currentView {
+		case viewArtists:
 			m.artistTable, cmd = m.artistTable.Update(msg)
-		} else if m.currentView == viewSongs {
+		case viewSongs:
 			m.songTable, cmd = m.songTable.Update(msg)
 		}
 

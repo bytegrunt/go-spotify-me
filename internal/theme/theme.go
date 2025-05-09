@@ -14,7 +14,7 @@ var (
 	colorForeground = lipgloss.Color("#FFFFFF")
 	colorMuted      = lipgloss.Color("#888888")
 	colorAccent     = lipgloss.Color("#333333")
-	colorHighlight  = lipgloss.Color("#3E3E3E")
+	// colorHighlight  = lipgloss.Color("#3E3E3E")
 	colorSelectedBG = lipgloss.Color("#2D46B9") // Spotify blue
 	colorSelectedFG = lipgloss.Color("#FFFFFF")
 )
