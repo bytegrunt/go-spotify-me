@@ -1,13 +1,13 @@
 package auth
 
 import (
+	cryptoRand "crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -28,10 +28,15 @@ type AuthConfig struct {
 
 // Generate a random code verifier
 func GenerateCodeVerifier() string {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano())) // Create a new random generator
 	verifier := make([]byte, 64)
+	_, err := cryptoRand.Read(verifier) // Use crypto/rand for secure random bytes
+	if err != nil {
+		log.Fatalf("Failed to generate secure random bytes: %v", err)
+	}
+
+	// Convert bytes to a-z characters
 	for i := range verifier {
-		verifier[i] = byte(rng.Intn(26) + 97) // a-z
+		verifier[i] = (verifier[i] % 26) + 97 // a-z
 	}
 	return string(verifier)
 }
@@ -99,7 +104,14 @@ func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time
 	}
 
 	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+
+	// Validate that the filePath is within the user's home directory
+	if !strings.HasPrefix(filePath, homeDir) {
+		log.Fatalf("Invalid file path: %s", filePath)
+	}
+
+	// Attempt to open the file
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		log.Fatalf("Failed to open file for writing: %v", err)
 	}
@@ -181,11 +193,15 @@ func GetValidAccessToken() (string, bool) {
 
 	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
 
+	// Validate that the filePath is within the user's home directory
+	if !strings.HasPrefix(filePath, homeDir) {
+		log.Fatalf("Invalid file path: %s", filePath)
+	}
+
 	// Attempt to open the file
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0600)
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
-		log.Printf("Failed to open or create token file: %v", err)
-		return "", false
+		log.Fatalf("Failed to open file: %v", err)
 	}
 	defer func() {
 		if err := file.Close(); err != nil {

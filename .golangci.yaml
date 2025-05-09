@@ -1,0 +1,66 @@
+version: "2"
+linters:
+  enable:
+  - asciicheck
+  - bodyclose
+  - copyloopvar
+  - dogsled
+  - durationcheck
+  - errorlint
+  - ginkgolinter
+  - gochecknoinits
+  - gosec
+  - importas
+  - misspell
+  - nakedret
+  - nolintlint
+  - revive
+  - testifylint
+  - unconvert
+  - unparam
+  - wastedassign
+  settings:
+    gosec:
+      # Exclude specific issues by file and line
+      exclude-rules:
+      - id: G304
+        path: cmd/login.go
+        line: 58
+      - id: G304
+        path: internal/auth/auth.go
+        line: 114
+      - id: G304
+        path: internal/auth/auth.go
+        line: 202
+    revive:
+      rules:
+      - name: dot-imports
+        disabled: true
+      - name: redefines-builtin-id
+    staticcheck:
+      checks:
+      - all
+      - -SA1019
+    testifylint:
+      enable-all: true
+  exclusions:
+    generated: lax
+    presets:
+    - comments
+    - common-false-positives
+    - legacy
+    - std-error-handling
+formatters:
+  enable:
+  - gci
+  - gofmt
+  - gofumpt
+  - goimports
+  settings:
+    gci:
+      sections:
+      - standard
+      - default
+      - prefix(github.com/securego)
+  exclusions:
+    generated: lax

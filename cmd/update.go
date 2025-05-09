@@ -185,21 +185,21 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.clientID = m.textInput.Value()
 				err := keyring.Set("go-spotify-me-cli", "client_id", m.clientID)
 				if err != nil {
-					m.err = fmt.Errorf("failed to store client ID in keyring: %v", err)
+					m.err = fmt.Errorf("failed to store client ID in keyring: %w", err)
 					return m, nil
 				}
 
 				// Call the Login function after saving the Client ID
 				err = Login()
 				if err != nil {
-					m.err = fmt.Errorf("failed to log in: %v", err)
+					m.err = fmt.Errorf("failed to log in: %w", err)
 					return m, nil
 				}
 
 				// Fetch the user's information
 				me, err := fetchMe()
 				if err != nil {
-					m.err = fmt.Errorf("failed to fetch user info: %v", err)
+					m.err = fmt.Errorf("failed to fetch user info: %w", err)
 					return m, nil
 				}
 				m.me = me

@@ -19,16 +19,16 @@ import (
 )
 
 func Login() error {
-	clientId, err := GetClientID()
+	clientID, err := GetClientID()
 	if err != nil {
-		return fmt.Errorf("failed to get client ID: %v", err)
+		return fmt.Errorf("failed to get client ID: %w", err)
 	}
 
 	authConfig := auth.AuthConfig{
 		RedirectURI: "http://127.0.0.1:9000/callback",
 		AuthURL:     "https://accounts.spotify.com/authorize",
 		TokenURL:    "https://accounts.spotify.com/api/token",
-		ClientID:    clientId,
+		ClientID:    clientID,
 	}
 
 	_, isValid := auth.GetValidAccessToken()
@@ -48,6 +48,13 @@ func Login() error {
 		}
 
 		filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
+
+		// Validate that the filePath is within the user's home directory
+		if !strings.HasPrefix(filePath, homeDir) {
+			log.Fatalf("Invalid file path: %s", filePath)
+		}
+
+		// Attempt to read the file
 		data, err := os.ReadFile(filePath)
 		if err == nil {
 			lines := strings.Split(string(data), "\n")
@@ -115,7 +122,8 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 	wg.Add(1) // Add one task to the WaitGroup
 
 	server := &http.Server{
-		Addr: "127.0.0.1:9000",
+		Addr:              "127.0.0.1:9000",
+		ReadHeaderTimeout: 5 * time.Second, // Set a timeout to mitigate Slowloris attacks
 	}
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {

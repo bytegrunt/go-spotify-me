@@ -57,7 +57,7 @@ func InitialAppModel(clientID string) appModel {
 	err := Login()
 	if err != nil {
 		return appModel{
-			err: fmt.Errorf("failed to log in: %v", err),
+			err: fmt.Errorf("failed to log in: %w", err),
 		}
 	}
 
