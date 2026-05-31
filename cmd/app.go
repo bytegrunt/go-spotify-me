@@ -18,6 +18,7 @@ const (
 )
 
 type appModel struct {
+	dataProvider    DataProvider
 	currentView     viewType
 	clientID        string
 	me              Me              // User information
@@ -49,8 +50,9 @@ func InitialAppModel(clientID string) appModel {
 		ti.Width = 50
 
 		return appModel{
-			currentView: viewEnterClientID,
-			textInput:   ti,
+			dataProvider: SpotifyDataProvider{},
+			currentView:  viewEnterClientID,
+			textInput:    ti,
 		}
 	}
 
@@ -95,6 +97,7 @@ func InitialAppModel(clientID string) appModel {
 	)
 
 	return appModel{
+		dataProvider:    SpotifyDataProvider{},
 		currentView:     viewMenu,
 		clientID:        clientID,
 		me:              me,
