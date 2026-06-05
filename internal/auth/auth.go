@@ -21,6 +21,99 @@ import (
 
 var logger *zap.Logger
 
+// TokenStore defines the interface for token storage operations
+type TokenStore interface {
+	GetRefreshToken() (string, error)
+	SaveTokens(accessToken, refreshToken string, expiresAt time.Time) error
+	GetValidAccessToken() (string, bool)
+}
+
+// osTokenStore implements TokenStore using the OS keyring and file storage
+type osTokenStore struct{}
+
+func (s *osTokenStore) GetRefreshToken() (string, error) {
+	// Check for refresh token in the keyring
+	refreshToken, err := keyring.Get("go-spotify-me-cli", "refresh_token")
+	if err == nil {
+		return refreshToken, nil
+	}
+
+	// Check for refresh token in the hidden file
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
+
+	// Validate that the filePath is within the user's home directory
+	if !strings.HasPrefix(filePath, homeDir) {
+		return "", fmt.Errorf("invalid file path: %s", filePath)
+	}
+
+	// Attempt to read the file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read token file: %w", err)
+	}
+
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "refresh_token=") {
+			return strings.TrimPrefix(line, "refresh_token="), nil
+		}
+	}
+
+	return "", fmt.Errorf("refresh token not found")
+}
+func (s *osTokenStore) SaveTokens(accessToken, refreshToken string, expiresAt time.Time) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
+
+	// Validate that the filePath is within the user's home directory
+	if !strings.HasPrefix(filePath, homeDir) {
+		return fmt.Errorf("invalid file path: %s", filePath)
+	}
+
+	// Attempt to open the file
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fmt.Errorf("failed to open file for writing: %w", err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Error("Error closing file", zap.Error(err))
+		}
+	}()
+
+	var data string
+
+	// Attempt to store the refresh token in the keyring
+	err = keyring.Set("go-spotify-me-cli", "refresh_token", refreshToken)
+	if err != nil {
+		logger.Error("Failed to store refresh token in keyring", zap.Error(err))
+		logger.Info("Falling back to saving the refresh token in the hidden file.")
+		data = fmt.Sprintf("access_token=%s\nrefresh_token=%s\nexpires_at=%s\n", accessToken, refreshToken, expiresAt.Format(time.RFC3339))
+	} else {
+		data = fmt.Sprintf("access_token=%s\nexpires_at=%s\n", accessToken, expiresAt.Format(time.RFC3339))
+	}
+
+	_, err = file.WriteString(data)
+	if err != nil {
+		return fmt.Errorf("failed to write to file: %w", err)
+	}
+
+	logger.Debug("Access token saved", zap.String("path", filePath))
+	return nil
+}
+func (s *osTokenStore) GetValidAccessToken() (string, bool) { return "", false }
+
+var Store TokenStore = &osTokenStore{}
+
 type AuthConfig struct {
 	RedirectURI string
 	AuthURL     string

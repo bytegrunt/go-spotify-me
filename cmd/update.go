@@ -3,14 +3,15 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/CyberGrit/go-spotify-me/internal/spotify"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/zalando/go-keyring"
 )
 
 type APIResponse struct {
-	Artists []Artist
-	Songs   []Song
+	Artists []spotify.Artist
+	Songs   []spotify.Song
 	Next    string
 	Prev    string
 }

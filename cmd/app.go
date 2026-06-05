@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/CyberGrit/go-spotify-me/internal/spotify"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,7 +21,7 @@ const (
 type appModel struct {
 	currentView     viewType
 	clientID        string
-	me              Me              // User information
+	me              spotify.Me              // User information
 	textInput       textinput.Model // Text input for Client ID
 	artists         APIResponse
 	songs           APIResponse
@@ -63,7 +64,7 @@ func InitialAppModel(clientID string) appModel {
 
 	me, err := fetchMe()
 	if err != nil {
-		me = Me{
+		me = spotify.Me{
 			DisplayName: "Unknown",
 			Email:       "Unknown",
 			Product:     "Unknown",
