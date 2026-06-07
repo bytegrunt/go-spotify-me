@@ -30,17 +30,33 @@ type appModel struct {
 	songColWidths   []int
 	windowSize      tea.WindowSizeMsg
 	err             error
+	dataProvider    DataProvider
 }
 
 func (m appModel) Init() tea.Cmd {
-	return tea.Batch(
-		tea.EnterAltScreen,
-		tea.ClearScreen,
-		tea.WindowSize(),
-	)
+	var cmds []tea.Cmd
+	cmds = append(cmds, tea.EnterAltScreen, tea.ClearScreen, tea.WindowSize())
+
+	if m.currentView == viewMenu {
+		cmds = append(cmds, func() tea.Msg {
+			err := m.dataProvider.Login()
+			if err != nil {
+				return initLoginMsg{err: fmt.Errorf("failed to log in: %w", err)}
+			}
+			me, err := m.dataProvider.FetchMe()
+			if err != nil {
+				return initLoginMsg{err: fmt.Errorf("failed to fetch user info: %w", err)}
+			}
+			return initLoginMsg{me: me}
+		})
+	}
+
+	return tea.Batch(cmds...)
 }
 
 func InitialAppModel(clientID string) appModel {
+	dp := &DefaultDataProvider{}
+
 	if clientID == "" {
 		ti := textinput.New()
 		ti.Placeholder = "Enter your Spotify Client ID"
@@ -49,25 +65,9 @@ func InitialAppModel(clientID string) appModel {
 		ti.Width = 50
 
 		return appModel{
-			currentView: viewEnterClientID,
-			textInput:   ti,
-		}
-	}
-
-	err := Login()
-	if err != nil {
-		return appModel{
-			err: fmt.Errorf("failed to log in: %w", err),
-		}
-	}
-
-	me, err := fetchMe()
-	if err != nil {
-		me = Me{
-			DisplayName: "Unknown",
-			Email:       "Unknown",
-			Product:     "Unknown",
-			ProfileURL:  "Unknown",
+			currentView:  viewEnterClientID,
+			textInput:    ti,
+			dataProvider: dp,
 		}
 	}
 
@@ -97,10 +97,16 @@ func InitialAppModel(clientID string) appModel {
 	return appModel{
 		currentView:     viewMenu,
 		clientID:        clientID,
-		me:              me,
 		artistTable:     artistTable,
 		artistColWidths: artistColWidths,
 		songTable:       songTable,
 		songColWidths:   songColWidths,
+		dataProvider:    dp,
+		me: Me{
+			DisplayName: "Loading...",
+			Email:       "Loading...",
+			Product:     "Loading...",
+			ProfileURL:  "Loading...",
+		},
 	}
 }
