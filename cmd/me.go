@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/CyberGrit/go-spotify-me/internal/auth"
+	"github.com/CyberGrit/go-spotify-me/internal/spotify"
 )
 
 // Me represents the user information from the /me endpoint
@@ -14,9 +15,9 @@ type Me struct {
 }
 
 // fetchMe fetches the user's information from the /me endpoint
-func fetchMe() (Me, error) {
+func fetchMe(client spotify.Client) (Me, error) {
 	token, _ := auth.GetValidAccessToken()
-	response, err := MakeAPIRequest(token, "https://api.spotify.com/v1/me")
+	response, err := client.Get(token, "https://api.spotify.com/v1/me")
 	if err != nil {
 		return Me{}, err
 	}

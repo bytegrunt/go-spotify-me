@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/CyberGrit/go-spotify-me/internal/auth"
+	"github.com/CyberGrit/go-spotify-me/internal/spotify"
 )
 
 type Song struct {
@@ -11,9 +12,9 @@ type Song struct {
 	Popularity int
 }
 
-func fetchSongsPage(url string) (APIResponse, error) {
+func fetchSongsPage(client spotify.Client, url string) (APIResponse, error) {
 	token, _ := auth.GetValidAccessToken()
-	response, err := MakeAPIRequest(token, url)
+	response, err := client.Get(token, url)
 	if err != nil {
 		return APIResponse{}, err
 	}

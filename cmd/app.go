@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/CyberGrit/go-spotify-me/internal/spotify"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,6 +19,7 @@ const (
 )
 
 type appModel struct {
+	client          spotify.Client
 	currentView     viewType
 	clientID        string
 	me              Me              // User information
@@ -41,6 +43,7 @@ func (m appModel) Init() tea.Cmd {
 }
 
 func InitialAppModel(clientID string) appModel {
+	client := spotify.NewClient()
 	if clientID == "" {
 		ti := textinput.New()
 		ti.Placeholder = "Enter your Spotify Client ID"
@@ -49,6 +52,7 @@ func InitialAppModel(clientID string) appModel {
 		ti.Width = 50
 
 		return appModel{
+			client:      client,
 			currentView: viewEnterClientID,
 			textInput:   ti,
 		}
@@ -57,11 +61,12 @@ func InitialAppModel(clientID string) appModel {
 	err := Login()
 	if err != nil {
 		return appModel{
-			err: fmt.Errorf("failed to log in: %w", err),
+			client: client,
+			err:    fmt.Errorf("failed to log in: %w", err),
 		}
 	}
 
-	me, err := fetchMe()
+	me, err := fetchMe(client)
 	if err != nil {
 		me = Me{
 			DisplayName: "Unknown",
@@ -95,6 +100,7 @@ func InitialAppModel(clientID string) appModel {
 	)
 
 	return appModel{
+		client:          client,
 		currentView:     viewMenu,
 		clientID:        clientID,
 		me:              me,
