@@ -6,9 +6,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -47,46 +45,23 @@ func Login() error {
 		ClientID:    clientID,
 	}
 
-	_, isValid := auth.GetValidAccessToken()
+	store := auth.NewOSStore()
+
+	_, isValid := auth.GetValidAccessToken(store)
 	if isValid {
 		return nil
 	}
 
-	// Check for refresh token in the keyring
-	refreshToken, err := keyring.Get("go-spotify-me-cli", "refresh_token")
+	// Check for refresh token in the store
+	refreshToken, err := store.GetRefreshToken()
 	if err != nil {
-		logger.Debug("Refresh token not found in keyring", zap.Error(err))
-
-		// Check for refresh token in the hidden file
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			logger.Fatal("Failed to get user home directory", zap.Error(err))
-		}
-
-		filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
-
-		// Validate that the filePath is within the user's home directory
-		if !strings.HasPrefix(filePath, homeDir) {
-			logger.Fatal("Invalid file path", zap.String("filePath", filePath))
-		}
-
-		// Attempt to read the file
-		data, err := os.ReadFile(filePath)
-		if err == nil {
-			lines := strings.Split(string(data), "\n")
-			for _, line := range lines {
-				if strings.HasPrefix(line, "refresh_token=") {
-					refreshToken = strings.TrimPrefix(line, "refresh_token=")
-					break
-				}
-			}
-		}
+		logger.Debug("Refresh token not found in store", zap.Error(err))
 	}
 
 	// If a refresh token is found, try to refresh the access token
 	if refreshToken != "" {
 		logger.Debug("Using existing refresh token to get a new access token.")
-		err := auth.RefreshAccessToken(authConfig, refreshToken)
+		err := auth.RefreshAccessToken(authConfig, refreshToken, store)
 		if err == nil {
 			return nil // Successfully refreshed the token, exit the command
 		}
@@ -111,7 +86,7 @@ func Login() error {
 	}
 
 	// Start a local server to handle the callback
-	startCallbackServer(authConfig, codeVerifier)
+	startCallbackServer(authConfig, codeVerifier, store)
 	return nil
 }
 
@@ -133,7 +108,7 @@ func GetClientID() (string, error) {
 }
 
 // Start a local server to handle the callback
-func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
+func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string, store auth.TokenStore) {
 	var wg sync.WaitGroup
 	wg.Add(1) // Add one task to the WaitGroup
 
@@ -156,7 +131,7 @@ func startCallbackServer(authConfig auth.AuthConfig, codeVerifier string) {
 
 		// Exchange the authorization code for an access token
 		go func() {
-			auth.ExchangeCodeForToken(authConfig, code, codeVerifier)
+			auth.ExchangeCodeForToken(authConfig, code, codeVerifier, store)
 			if err := server.Close(); err != nil {
 				logger.Error("Error closing server", zap.Error(err))
 			}

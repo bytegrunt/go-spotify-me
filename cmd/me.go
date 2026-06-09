@@ -15,7 +15,8 @@ type Me struct {
 
 // fetchMe fetches the user's information from the /me endpoint
 func fetchMe() (Me, error) {
-	token, _ := auth.GetValidAccessToken()
+	store := auth.NewOSStore()
+	token, _ := auth.GetValidAccessToken(store)
 	response, err := MakeAPIRequest(token, "https://api.spotify.com/v1/me")
 	if err != nil {
 		return Me{}, err
