@@ -30,6 +30,7 @@ type appModel struct {
 	songColWidths   []int
 	windowSize      tea.WindowSizeMsg
 	err             error
+	provider        DataProvider
 }
 
 func (m appModel) Init() tea.Cmd {
@@ -40,7 +41,7 @@ func (m appModel) Init() tea.Cmd {
 	)
 }
 
-func InitialAppModel(clientID string) appModel {
+func InitialAppModel(clientID string, provider DataProvider) appModel {
 	if clientID == "" {
 		ti := textinput.New()
 		ti.Placeholder = "Enter your Spotify Client ID"
@@ -51,13 +52,15 @@ func InitialAppModel(clientID string) appModel {
 		return appModel{
 			currentView: viewEnterClientID,
 			textInput:   ti,
+			provider:    provider,
 		}
 	}
 
 	err := Login()
 	if err != nil {
 		return appModel{
-			err: fmt.Errorf("failed to log in: %w", err),
+			err:      fmt.Errorf("failed to log in: %w", err),
+			provider: provider,
 		}
 	}
 
@@ -102,5 +105,6 @@ func InitialAppModel(clientID string) appModel {
 		artistColWidths: artistColWidths,
 		songTable:       songTable,
 		songColWidths:   songColWidths,
+		provider:        provider,
 	}
 }

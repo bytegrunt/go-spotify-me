@@ -44,8 +44,9 @@ func main() {
 		logger.Fatal("Failed to retrieve client ID", zap.Error(err))
 	}
 
-	// Initialize the app model with the client ID
-	p := tea.NewProgram(cmd.InitialAppModel(clientID), tea.WithAltScreen())
+	// Initialize the app model with the client ID and data provider
+	provider := cmd.DefaultDataProvider{}
+	p := tea.NewProgram(cmd.InitialAppModel(clientID, provider), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		logger.Fatal("Error starting TUI", zap.Error(err))
 	}

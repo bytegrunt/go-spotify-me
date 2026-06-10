@@ -39,3 +39,20 @@ func MakeAPIRequest(token string, url string) (map[string]interface{}, error) {
 
 	return response, nil
 }
+
+// DataProvider defines an interface for fetching data from the API
+type DataProvider interface {
+	FetchArtists(url string) (APIResponse, error)
+	FetchSongs(url string) (APIResponse, error)
+}
+
+// DefaultDataProvider is the default implementation of DataProvider
+type DefaultDataProvider struct{}
+
+func (d DefaultDataProvider) FetchArtists(url string) (APIResponse, error) {
+	return fetchArtistsPage(url)
+}
+
+func (d DefaultDataProvider) FetchSongs(url string) (APIResponse, error) {
+	return fetchSongsPage(url)
+}
