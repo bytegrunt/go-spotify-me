@@ -27,6 +27,26 @@ type errMsg struct {
 	err error
 }
 
+type loginCompleteMsg struct {
+	me Me
+}
+
+func performLogin(dp DataProvider) tea.Cmd {
+	return func() tea.Msg {
+		err := Login()
+		if err != nil {
+			return errMsg{fmt.Errorf("failed to log in: %w", err)}
+		}
+
+		me, err := dp.FetchMe()
+		if err != nil {
+			return errMsg{fmt.Errorf("failed to fetch user info: %w", err)}
+		}
+
+		return loginCompleteMsg{me: me}
+	}
+}
+
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -52,7 +72,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == viewMenu {
 				m.artistTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
+					response, err := m.dataProvider.FetchArtists("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -65,7 +85,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == viewMenu {
 				m.songTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
+					response, err := m.dataProvider.FetchSongs("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -79,7 +99,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case viewArtists:
 				m.artistTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=short_term")
+					response, err := m.dataProvider.FetchArtists("https://api.spotify.com/v1/me/top/artists?time_range=short_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -88,7 +108,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case viewSongs:
 				m.songTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=short_term")
+					response, err := m.dataProvider.FetchSongs("https://api.spotify.com/v1/me/top/tracks?time_range=short_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -101,7 +121,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case viewSongs:
 				m.songTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
+					response, err := m.dataProvider.FetchSongs("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -111,7 +131,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case viewArtists:
 				m.artistTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
+					response, err := m.dataProvider.FetchArtists("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -124,7 +144,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case viewSongs:
 				m.songTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=long_term")
+					response, err := m.dataProvider.FetchSongs("https://api.spotify.com/v1/me/top/tracks?time_range=long_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -133,7 +153,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case viewArtists:
 				m.artistTable.Focus()
 				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=long_term")
+					response, err := m.dataProvider.FetchArtists("https://api.spotify.com/v1/me/top/artists?time_range=long_term")
 					if err != nil {
 						return errMsg{err}
 					}
@@ -144,7 +164,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "right": // Handle next page for Artists or Songs
 			if m.currentView == viewArtists && m.artists.Next != "" {
 				return m, func() tea.Msg {
-					response, err := fetchArtistsPage(m.artists.Next)
+					response, err := m.dataProvider.FetchArtists(m.artists.Next)
 					if err != nil {
 						return errMsg{err}
 					}
@@ -152,7 +172,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else if m.currentView == viewSongs && m.songs.Next != "" {
 				return m, func() tea.Msg {
-					response, err := fetchSongsPage(m.songs.Next)
+					response, err := m.dataProvider.FetchSongs(m.songs.Next)
 					if err != nil {
 						return errMsg{err}
 					}
@@ -163,7 +183,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "left": // Handle previous page for Artists or Songs
 			if m.currentView == viewArtists && m.artists.Prev != "" {
 				return m, func() tea.Msg {
-					response, err := fetchArtistsPage(m.artists.Prev)
+					response, err := m.dataProvider.FetchArtists(m.artists.Prev)
 					if err != nil {
 						return errMsg{err}
 					}
@@ -171,7 +191,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else if m.currentView == viewSongs && m.songs.Prev != "" {
 				return m, func() tea.Msg {
-					response, err := fetchSongsPage(m.songs.Prev)
+					response, err := m.dataProvider.FetchSongs(m.songs.Prev)
 					if err != nil {
 						return errMsg{err}
 					}
@@ -189,45 +209,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				// Call the Login function after saving the Client ID
-				err = Login()
-				if err != nil {
-					m.err = fmt.Errorf("failed to log in: %w", err)
-					return m, nil
-				}
-
-				// Fetch the user's information
-				me, err := fetchMe()
-				if err != nil {
-					m.err = fmt.Errorf("failed to fetch user info: %w", err)
-					return m, nil
-				}
-				m.me = me
-
-				// Initialize artist table
-				m.artistTable = table.New(
-					table.WithColumns([]table.Column{
-						{Title: "Name", Width: 40},
-						{Title: "Genres", Width: 50},
-						{Title: "Popularity", Width: 10},
-					}),
-					table.WithFocused(false),
-				)
-
-				// Initialize song table
-				m.songTable = table.New(
-					table.WithColumns([]table.Column{
-						{Title: "Name", Width: 40},
-						{Title: "Artist", Width: 20},
-						{Title: "Album", Width: 30},
-						{Title: "Popularity", Width: 10},
-					}),
-					table.WithFocused(false),
-				)
-
-				// Switch to the menu view after successful login
-				m.currentView = viewMenu
-				return m, nil
+				m.currentView = viewLoading
+				return m, performLogin(m.dataProvider)
 			}
 		}
 
@@ -245,6 +228,32 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Recalculate column widths
 		m.artistColWidths = calculateColumnWidths(msg.Width, []float64{0.4, 0.4, 0.2})
 		m.songColWidths = calculateColumnWidths(msg.Width, []float64{0.4, 0.2, 0.2, 0.2})
+
+	case loginCompleteMsg:
+		m.me = msg.me
+
+		// Initialize artist table
+		m.artistTable = table.New(
+			table.WithColumns([]table.Column{
+				{Title: "Name", Width: 40},
+				{Title: "Genres", Width: 50},
+				{Title: "Popularity", Width: 10},
+			}),
+			table.WithFocused(false),
+		)
+
+		// Initialize song table
+		m.songTable = table.New(
+			table.WithColumns([]table.Column{
+				{Title: "Name", Width: 40},
+				{Title: "Artist", Width: 20},
+				{Title: "Album", Width: 30},
+				{Title: "Popularity", Width: 10},
+			}),
+			table.WithFocused(false),
+		)
+
+		m.currentView = viewMenu
 
 	case switchToArtistsMsg:
 		m.artists = msg.response
