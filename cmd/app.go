@@ -20,6 +20,7 @@ const (
 type appModel struct {
 	currentView     viewType
 	clientID        string
+	client          SpotifyClient
 	me              Me              // User information
 	textInput       textinput.Model // Text input for Client ID
 	artists         APIResponse
@@ -61,7 +62,9 @@ func InitialAppModel(clientID string) appModel {
 		}
 	}
 
-	me, err := fetchMe()
+	client := NewSpotifyClient()
+
+	me, err := fetchMe(client)
 	if err != nil {
 		me = Me{
 			DisplayName: "Unknown",
@@ -95,6 +98,7 @@ func InitialAppModel(clientID string) appModel {
 	)
 
 	return appModel{
+		client:          client,
 		currentView:     viewMenu,
 		clientID:        clientID,
 		me:              me,
