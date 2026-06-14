@@ -50,7 +50,7 @@ func GenerateCodeChallenge(verifier string) string {
 }
 
 // Exchange the authorization code for an access token
-func ExchangeCodeForToken(authConfig AuthConfig, code, codeVerifier string) {
+func ExchangeCodeForToken(authConfig AuthConfig, code, codeVerifier string, store TokenStore) {
 	data := url.Values{}
 	data.Set("client_id", authConfig.ClientID)
 	data.Set("grant_type", "authorization_code")
@@ -92,10 +92,13 @@ func ExchangeCodeForToken(authConfig AuthConfig, code, codeVerifier string) {
 	// Calculate expiration time
 	expirationTime := time.Now().Add(time.Duration(expiresIn) * time.Second)
 
-	// Save the access token, refresh token, and expiration time to a hidden file
-	SaveAccessTokenToFile(accessToken, refreshToken, expirationTime)
+	// Save the access token, refresh token, and expiration time
+	err = store.SaveTokens(accessToken, refreshToken, expirationTime)
+	if err != nil {
+		logger.Fatal("Failed to save tokens", zap.Error(err))
+	}
 
-	fmt.Println("Refresh Token stored successfully.")
+	fmt.Println("Tokens stored successfully.")
 }
 
 // Save the access token, refresh token, and expiration time to a hidden file
@@ -144,7 +147,7 @@ func SaveAccessTokenToFile(accessToken, refreshToken string, expirationTime time
 }
 
 // Refresh the access token using the refresh token
-func RefreshAccessToken(authConfig AuthConfig, refreshToken string) error {
+func RefreshAccessToken(authConfig AuthConfig, refreshToken string, store TokenStore) error {
 	data := url.Values{}
 	data.Set("client_id", authConfig.ClientID)
 	data.Set("grant_type", "refresh_token")
@@ -179,67 +182,12 @@ func RefreshAccessToken(authConfig AuthConfig, refreshToken string) error {
 
 	accessToken := tokenResponse["access_token"].(string)
 
-	// Save the new access token to a hidden file
-	SaveAccessTokenToFile(accessToken, refreshToken, time.Now().Add(3600*time.Second)) // Assuming 1 hour expiration
+	// Save the new access token
+	err = store.SaveTokens(accessToken, refreshToken, time.Now().Add(3600*time.Second)) // Assuming 1 hour expiration
+	if err != nil {
+		logger.Error("Failed to save tokens", zap.Error(err))
+	}
 
 	logging.DebugLog("Access Token refreshed successfully.")
 	return nil
-}
-
-// Check if the token is still valid and return the token if valid
-func GetValidAccessToken() (string, bool) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		logger.Fatal("Failed to get user home directory", zap.Error(err))
-	}
-
-	filePath := filepath.Join(homeDir, ".go-spotify-me-cli")
-
-	// Validate that the filePath is within the user's home directory
-	if !strings.HasPrefix(filePath, homeDir) {
-		logger.Fatal("Invalid file path", zap.String("filePath", filePath))
-	}
-
-	// Attempt to open the file
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o600)
-	if err != nil {
-		logger.Fatal("Failed to open file", zap.Error(err))
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			logger.Error("Error closing file", zap.Error(err))
-		}
-	}()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		logger.Error("Failed to read token file", zap.Error(err))
-		return "", false
-	}
-
-	lines := strings.Split(string(data), "\n")
-	var accessToken, expiresAtStr string
-	for _, line := range lines {
-		if strings.HasPrefix(line, "access_token=") {
-			accessToken = strings.TrimPrefix(line, "access_token=")
-		} else if strings.HasPrefix(line, "expires_at=") {
-			expiresAtStr = strings.TrimPrefix(line, "expires_at=")
-		}
-	}
-
-	if accessToken == "" || expiresAtStr == "" {
-		return "", false
-	}
-
-	expirationTime, err := time.Parse(time.RFC3339, expiresAtStr)
-	if err != nil {
-		logger.Error("Failed to parse expiration time", zap.Error(err))
-		return "", false
-	}
-
-	if time.Now().After(expirationTime) {
-		return "", false
-	}
-
-	return accessToken, true
 }

@@ -45,7 +45,9 @@ func main() {
 	}
 
 	// Initialize the app model with the client ID
-	p := tea.NewProgram(cmd.InitialAppModel(clientID), tea.WithAltScreen())
+	client := &cmd.DefaultSpotifyClient{}
+	dp := cmd.NewSpotifyDataProvider(client)
+	p := tea.NewProgram(cmd.InitialAppModel(clientID, dp, client), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		logger.Fatal("Error starting TUI", zap.Error(err))
 	}

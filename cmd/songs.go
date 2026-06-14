@@ -11,9 +11,10 @@ type Song struct {
 	Popularity int
 }
 
-func fetchSongsPage(url string) (APIResponse, error) {
-	token, _ := auth.GetValidAccessToken()
-	response, err := MakeAPIRequest(token, url)
+func fetchSongsPage(client SpotifyClient, url string) (APIResponse, error) {
+	store := auth.NewOSTokenStore()
+	token, _ := store.GetValidAccessToken()
+	response, err := client.Get(token, url)
 	if err != nil {
 		return APIResponse{}, err
 	}

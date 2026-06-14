@@ -8,8 +8,14 @@ import (
 	"net/http"
 )
 
-// MakeAPIRequest makes a GET request to the Spotify API and returns the response or an error
-func MakeAPIRequest(token string, url string) (map[string]interface{}, error) {
+type SpotifyClient interface {
+	Get(token string, url string) (map[string]interface{}, error)
+}
+
+type DefaultSpotifyClient struct{}
+
+// Get makes a GET request to the Spotify API and returns the response or an error
+func (c *DefaultSpotifyClient) Get(token string, url string) (map[string]interface{}, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
