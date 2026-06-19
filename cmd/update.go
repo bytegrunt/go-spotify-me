@@ -51,26 +51,14 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Only switch to the Artists view if in the main menu
 			if m.currentView == viewMenu {
 				m.artistTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToArtistsMsg{response}
-				}
+				return m, m.provider.FetchTopArtists("medium_term")
 			}
 
 		case "s", "S":
 			// Only switch to the Songs view if in the main menu
 			if m.currentView == viewMenu {
 				m.songTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToSongsMsg{response}
-				}
+				return m, m.provider.FetchTopSongs("medium_term")
 			}
 
 		case "1":
@@ -78,105 +66,45 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.currentView {
 			case viewArtists:
 				m.artistTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=short_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToArtistsMsg{response}
-				}
+				return m, m.provider.FetchTopArtists("short_term")
 			case viewSongs:
 				m.songTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=short_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToSongsMsg{response}
-				}
+				return m, m.provider.FetchTopSongs("short_term")
 			}
 		case "2":
 			// medium
 			switch m.currentView {
 			case viewSongs:
 				m.songTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=medium_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToSongsMsg{response}
-				}
+				return m, m.provider.FetchTopSongs("medium_term")
 
 			case viewArtists:
 				m.artistTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=medium_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToArtistsMsg{response}
-				}
+				return m, m.provider.FetchTopArtists("medium_term")
 			}
 		case "3":
 			// long
 			switch m.currentView {
 			case viewSongs:
 				m.songTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchSongsPage("https://api.spotify.com/v1/me/top/tracks?time_range=long_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToSongsMsg{response}
-				}
+				return m, m.provider.FetchTopSongs("long_term")
 			case viewArtists:
 				m.artistTable.Focus()
-				return m, func() tea.Msg {
-					response, err := fetchArtistsPage("https://api.spotify.com/v1/me/top/artists?time_range=long_term")
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToArtistsMsg{response}
-				}
+				return m, m.provider.FetchTopArtists("long_term")
 			}
 
 		case "right": // Handle next page for Artists or Songs
 			if m.currentView == viewArtists && m.artists.Next != "" {
-				return m, func() tea.Msg {
-					response, err := fetchArtistsPage(m.artists.Next)
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToArtistsMsg{response}
-				}
+				return m, m.provider.FetchArtistsPage(m.artists.Next)
 			} else if m.currentView == viewSongs && m.songs.Next != "" {
-				return m, func() tea.Msg {
-					response, err := fetchSongsPage(m.songs.Next)
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToSongsMsg{response}
-				}
+				return m, m.provider.FetchSongsPage(m.songs.Next)
 			}
 
 		case "left": // Handle previous page for Artists or Songs
 			if m.currentView == viewArtists && m.artists.Prev != "" {
-				return m, func() tea.Msg {
-					response, err := fetchArtistsPage(m.artists.Prev)
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToArtistsMsg{response}
-				}
+				return m, m.provider.FetchArtistsPage(m.artists.Prev)
 			} else if m.currentView == viewSongs && m.songs.Prev != "" {
-				return m, func() tea.Msg {
-					response, err := fetchSongsPage(m.songs.Prev)
-					if err != nil {
-						return errMsg{err}
-					}
-					return switchToSongsMsg{response}
-				}
+				return m, m.provider.FetchSongsPage(m.songs.Prev)
 			}
 
 		case "enter":
