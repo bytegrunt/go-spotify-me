@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/CyberGrit/go-spotify-me/internal/auth"
+	"github.com/CyberGrit/go-spotify-me/internal/spotify"
 )
 
 // Artist represents an artist's details
@@ -15,7 +16,8 @@ type Artist struct {
 
 func fetchArtistsPage(url string) (APIResponse, error) {
 	token, _ := auth.GetValidAccessToken()
-	response, err := MakeAPIRequest(token, url)
+	client := spotify.NewClient(token)
+	response, err := client.Get(url)
 	if err != nil {
 		return APIResponse{}, err
 	}

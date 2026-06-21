@@ -1,4 +1,4 @@
-package cmd
+package spotify
 
 import (
 	"net/http"
@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-func TestMakeAPIRequest_Success(t *testing.T) {
-	// Mock server that returns a successful JSON response
+func TestDefaultClient_Get_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test_token" {
 			t.Errorf("Expected Authorization header 'Bearer test_token', got '%s'", r.Header.Get("Authorization"))
@@ -18,7 +17,8 @@ func TestMakeAPIRequest_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := MakeAPIRequest("test_token", server.URL)
+	client := NewClient("test_token")
+	response, err := client.Get(server.URL)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -31,15 +31,15 @@ func TestMakeAPIRequest_Success(t *testing.T) {
 	}
 }
 
-func TestMakeAPIRequest_ErrorStatus(t *testing.T) {
-	// Mock server that returns an error status code
+func TestDefaultClient_Get_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte(`Not Found`))
 	}))
 	defer server.Close()
 
-	_, err := MakeAPIRequest("test_token", server.URL)
+	client := NewClient("test_token")
+	_, err := client.Get(server.URL)
 	if err == nil {
 		t.Fatalf("Expected error for non-200 status code, got nil")
 	}
@@ -50,15 +50,15 @@ func TestMakeAPIRequest_ErrorStatus(t *testing.T) {
 	}
 }
 
-func TestMakeAPIRequest_InvalidJSON(t *testing.T) {
-	// Mock server that returns invalid JSON
+func TestDefaultClient_Get_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{invalid json`))
 	}))
 	defer server.Close()
 
-	_, err := MakeAPIRequest("test_token", server.URL)
+	client := NewClient("test_token")
+	_, err := client.Get(server.URL)
 	if err == nil {
 		t.Fatalf("Expected error for invalid JSON, got nil")
 	}

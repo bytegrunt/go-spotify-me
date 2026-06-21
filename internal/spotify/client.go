@@ -1,20 +1,30 @@
-package cmd
+package spotify
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
-// MakeAPIRequest makes a GET request to the Spotify API and returns the response or an error
-func MakeAPIRequest(token string, url string) (map[string]interface{}, error) {
+type Client interface {
+	Get(url string) (map[string]interface{}, error)
+}
+
+type DefaultClient struct {
+	token string
+}
+
+func NewClient(token string) Client {
+	return &DefaultClient{token: token}
+}
+
+func (c *DefaultClient) Get(url string) (map[string]interface{}, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+c.token)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -23,7 +33,7 @@ func MakeAPIRequest(token string, url string) (map[string]interface{}, error) {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("Error closing response body: %v", err)
+			fmt.Printf("Error closing response body: %v\n", err)
 		}
 	}()
 
