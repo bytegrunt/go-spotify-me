@@ -1,9 +1,5 @@
 package cmd
 
-import (
-	"github.com/CyberGrit/go-spotify-me/internal/auth"
-)
-
 type Song struct {
 	Name       string
 	Artist     string
@@ -12,15 +8,11 @@ type Song struct {
 }
 
 func fetchSongsPage(url string) (APIResponse, error) {
-	token, _ := auth.GetValidAccessToken()
-	response, err := MakeAPIRequest(token, url)
+	client := NewSpotifyClient()
+	songs, next, prev, err := client.GetSongsPage(url)
 	if err != nil {
 		return APIResponse{}, err
 	}
-
-	songs := parseSongs(response)
-	next, _ := response["next"].(string)
-	prev, _ := response["previous"].(string)
 
 	return APIResponse{
 		Songs: songs,

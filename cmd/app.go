@@ -30,6 +30,7 @@ type appModel struct {
 	songColWidths   []int
 	windowSize      tea.WindowSizeMsg
 	err             error
+	dataProvider    DataProvider
 }
 
 func (m appModel) Init() tea.Cmd {
@@ -49,8 +50,9 @@ func InitialAppModel(clientID string) appModel {
 		ti.Width = 50
 
 		return appModel{
-			currentView: viewEnterClientID,
-			textInput:   ti,
+			currentView:  viewEnterClientID,
+			textInput:    ti,
+			dataProvider: NewSpotifyDataProvider(),
 		}
 	}
 
@@ -102,5 +104,6 @@ func InitialAppModel(clientID string) appModel {
 		artistColWidths: artistColWidths,
 		songTable:       songTable,
 		songColWidths:   songColWidths,
+		dataProvider:    NewSpotifyDataProvider(),
 	}
 }

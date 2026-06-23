@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestMakeAPIRequest_Success(t *testing.T) {
+func TestSpotifyClient_Success(t *testing.T) {
 	// Mock server that returns a successful JSON response
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test_token" {
@@ -18,7 +18,14 @@ func TestMakeAPIRequest_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := MakeAPIRequest("test_token", server.URL)
+	client := &DefaultSpotifyClient{
+		httpClient: &http.Client{},
+		tokenProvider: func() (string, bool) {
+			return "test_token", true
+		},
+	}
+
+	response, err := client.doRequest(server.URL)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -31,7 +38,7 @@ func TestMakeAPIRequest_Success(t *testing.T) {
 	}
 }
 
-func TestMakeAPIRequest_ErrorStatus(t *testing.T) {
+func TestSpotifyClient_ErrorStatus(t *testing.T) {
 	// Mock server that returns an error status code
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -39,7 +46,14 @@ func TestMakeAPIRequest_ErrorStatus(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, err := MakeAPIRequest("test_token", server.URL)
+	client := &DefaultSpotifyClient{
+		httpClient: &http.Client{},
+		tokenProvider: func() (string, bool) {
+			return "test_token", true
+		},
+	}
+
+	_, err := client.doRequest(server.URL)
 	if err == nil {
 		t.Fatalf("Expected error for non-200 status code, got nil")
 	}
@@ -50,7 +64,7 @@ func TestMakeAPIRequest_ErrorStatus(t *testing.T) {
 	}
 }
 
-func TestMakeAPIRequest_InvalidJSON(t *testing.T) {
+func TestSpotifyClient_InvalidJSON(t *testing.T) {
 	// Mock server that returns invalid JSON
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -58,7 +72,14 @@ func TestMakeAPIRequest_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, err := MakeAPIRequest("test_token", server.URL)
+	client := &DefaultSpotifyClient{
+		httpClient: &http.Client{},
+		tokenProvider: func() (string, bool) {
+			return "test_token", true
+		},
+	}
+
+	_, err := client.doRequest(server.URL)
 	if err == nil {
 		t.Fatalf("Expected error for invalid JSON, got nil")
 	}
