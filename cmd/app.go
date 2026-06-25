@@ -20,6 +20,7 @@ const (
 type appModel struct {
 	currentView     viewType
 	clientID        string
+	client          SpotifyClient
 	me              Me              // User information
 	textInput       textinput.Model // Text input for Client ID
 	artists         APIResponse
@@ -41,6 +42,8 @@ func (m appModel) Init() tea.Cmd {
 }
 
 func InitialAppModel(clientID string) appModel {
+	client := NewSpotifyClient()
+
 	if clientID == "" {
 		ti := textinput.New()
 		ti.Placeholder = "Enter your Spotify Client ID"
@@ -51,6 +54,7 @@ func InitialAppModel(clientID string) appModel {
 		return appModel{
 			currentView: viewEnterClientID,
 			textInput:   ti,
+			client:      client,
 		}
 	}
 
@@ -61,7 +65,7 @@ func InitialAppModel(clientID string) appModel {
 		}
 	}
 
-	me, err := fetchMe()
+	me, err := fetchMe(client)
 	if err != nil {
 		me = Me{
 			DisplayName: "Unknown",
@@ -97,6 +101,7 @@ func InitialAppModel(clientID string) appModel {
 	return appModel{
 		currentView:     viewMenu,
 		clientID:        clientID,
+		client:          client,
 		me:              me,
 		artistTable:     artistTable,
 		artistColWidths: artistColWidths,
