@@ -15,9 +15,10 @@ type Me struct {
 }
 
 // fetchMe fetches the user's information from the /me endpoint
-func fetchMe(client spotify.Client) (Me, error) {
-	token, _ := auth.GetValidAccessToken()
-	response, err := client.Get(token, "https://api.spotify.com/v1/me")
+func fetchMe() (Me, error) {
+	store := auth.NewOSTokenStore("go-spotify-me-cli")
+	token, _ := store.GetValidAccessToken()
+	response, err := MakeAPIRequest(token, "https://api.spotify.com/v1/me")
 	if err != nil {
 		return Me{}, err
 	}
